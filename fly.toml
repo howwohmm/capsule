@@ -1,0 +1,30 @@
+app = "mindos"
+primary_region = "nrt"   # Tokyo — fallback from Singapore
+
+[build]
+  [build.args]
+    PYTHON_VERSION = "3.11"
+
+[http_service]
+  internal_port = 8000
+  force_https   = true
+  auto_stop_machines  = false   # NEVER sleep — scheduler must always run
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type       = "requests"
+    hard_limit = 50
+    soft_limit = 25
+
+[[vm]]
+  memory = "256mb"
+  cpu_kind = "shared"
+  cpus = 1
+
+[mounts]
+  source      = "mindos_data"
+  destination = "/data"
+
+[env]
+  DATABASE_PATH = "/data/mindos.db"
