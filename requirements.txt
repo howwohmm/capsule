@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+openai
+pydantic
+youtube-transcript-api
+yt-dlp
+groq
+requests
+gspread
+google-auth
+apscheduler
+pytz
