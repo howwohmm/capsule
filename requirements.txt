@@ -11,3 +11,4 @@ gspread
 google-auth
 apscheduler
 pytz
+sentry-sdk[fastapi]

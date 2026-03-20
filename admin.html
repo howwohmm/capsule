@@ -2,1942 +2,806 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Capsule Admin</title>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:#080808;color:#e2e2e2;font-size:13px;line-height:1.5;min-height:100vh}
+button{cursor:pointer;font-family:inherit;font-size:12px;border:none;border-radius:5px;padding:4px 10px;transition:opacity .15s}
+button:hover{opacity:.75}
+button:disabled{opacity:.3;cursor:default}
+input,textarea,select{font-family:inherit;background:#141414;border:1px solid #222;color:#e2e2e2;border-radius:6px;padding:7px 10px;outline:none;font-size:12px;width:100%}
+input:focus,textarea:focus,select:focus{border-color:#333}
+a{color:inherit;text-decoration:none}
 
-  :root {
-    --bg: #f8f7f4;
-    --surface: #ffffff;
-    --border: #e5e2dc;
-    --text: #1a1a1a;
-    --muted: #888;
-    --accent: #2d6a4f;
-    --accent-light: #e8f5ee;
-    --warn: #d97706;
-    --warn-light: #fef3c7;
-    --danger: #dc2626;
-    --danger-light: #fef2f2;
-    --blue: #2563eb;
-    --blue-light: #eff6ff;
-    --purple: #7c3aed;
-    --purple-light: #f5f3ff;
-  }
+/* ── Login ───────────────────────────────────────────────────── */
+#login{display:none;align-items:center;justify-content:center;min-height:100vh}
+.lbox{background:#0d0d0d;border:1px solid #1c1c1c;border-radius:10px;padding:32px;width:290px}
+.lbox h1{font-size:15px;font-weight:700;margin-bottom:3px;letter-spacing:-.3px}
+.lbox p{color:#444;font-size:11px;margin-bottom:22px}
+.lfield{margin-bottom:10px}
+.lfield label{display:block;font-size:10px;color:#444;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+.lbtn{width:100%;padding:9px;background:#e8e8e8;color:#000;font-weight:600;font-size:12px;border-radius:6px;margin-top:4px;border:none}
+.lerr{color:#f87171;font-size:11px;margin-top:7px;min-height:16px}
 
-  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; font-size: 13px; line-height: 1.5; min-height: 100vh; }
+/* ── App shell ───────────────────────────────────────────────── */
+#app{display:none;flex-direction:column;min-height:100vh}
+.bar{display:flex;align-items:center;gap:14px;padding:0 18px;height:44px;border-bottom:1px solid #141414;background:#080808;position:sticky;top:0;z-index:100}
+.brand{font-size:12px;font-weight:700;letter-spacing:.5px;color:#e8e8e8;white-space:nowrap}
+.brand em{color:#333;font-style:normal;font-weight:400;margin-left:4px}
+nav{display:flex;gap:1px;flex:1}
+.tb{background:none;color:#444;border-radius:5px;padding:4px 11px;font-size:12px;border:1px solid transparent}
+.tb.on{background:#141414;color:#e2e2e2;border-color:#1c1c1c}
+.bar-r{display:flex;align-items:center;gap:8px;margin-left:auto}
+.sdot{width:6px;height:6px;border-radius:50%;background:#2a2a2a;flex-shrink:0;transition:background .3s}
+.sdot.ok{background:#22c55e;box-shadow:0 0 5px #22c55e55}
+.sdot.err{background:#ef4444}
+.ts{font-size:11px;color:#2a2a2a}
+.bsm{background:#141414;color:#777;border:1px solid #1c1c1c;font-size:11px;padding:3px 9px;border-radius:5px}
+.bgh{background:none;color:#333;font-size:11px;padding:3px 7px;border:none}
+.bgh:hover{color:#777;opacity:1}
 
-  /* ── Login ── */
-  #login-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-  .login-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 40px 36px; width: 360px; box-shadow: 0 8px 32px rgba(0,0,0,0.08); }
-  .login-brand { font-size: 11px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--text); margin-bottom: 28px; }
-  .login-brand span { color: var(--muted); font-weight: 400; }
-  .login-title { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 24px; }
-  .login-field { margin-bottom: 14px; }
-  .login-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: block; }
-  .login-input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; outline: none; background: var(--bg); transition: border-color 0.15s; }
-  .login-input:focus { border-color: var(--accent); background: #fff; }
-  .login-btn { width: 100%; padding: 11px; margin-top: 6px; background: var(--accent); color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
-  .login-btn:hover { opacity: 0.88; }
-  .login-error { color: var(--danger); font-size: 12px; margin-top: 10px; text-align: center; min-height: 18px; }
+/* ── Content ─────────────────────────────────────────────────── */
+.wrap{padding:20px;max-width:1300px;margin:0 auto;width:100%}
 
-  /* ── Topbar ── */
-  .topbar { background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; height: 48px; position: sticky; top: 0; z-index: 100; }
-  .topbar-brand { font-weight: 700; font-size: 14px; letter-spacing: -0.3px; }
-  .topbar-brand span { color: var(--muted); font-weight: 400; margin-left: 6px; font-size: 12px; }
-  .topbar-right { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; }
-  .topbar-btn { background: none; border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 12px; color: var(--text); transition: background 0.1s; }
-  .topbar-btn:hover { background: var(--bg); }
-  .topbar-btn.danger { color: var(--danger); border-color: var(--danger-light); }
-  .topbar-btn.danger:hover { background: var(--danger-light); }
+/* ── Stats ───────────────────────────────────────────────────── */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:20px}
+.sc{background:#0d0d0d;border:1px solid #1a1a1a;border-radius:8px;padding:14px 14px 12px}
+.sv{font-size:28px;font-weight:700;line-height:1;letter-spacing:-1.5px;color:#e8e8e8}
+.sl{font-size:10px;color:#444;margin-top:5px;text-transform:uppercase;letter-spacing:.5px}
 
-  /* ── Layout ── */
-  .shell { display: flex; height: calc(100vh - 48px); }
+/* ── Section header ──────────────────────────────────────────── */
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.sh h2{font-size:12px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:.5px}
+.sh-r{display:flex;gap:6px;align-items:center}
 
-  /* ── Sidebar ── */
-  .sidebar { width: 186px; background: var(--surface); border-right: 1px solid var(--border); padding: 12px 0; flex-shrink: 0; overflow-y: auto; }
-  .sidebar-section { padding: 8px 16px 4px; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; }
-  .sidebar-divider { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
-  .tab-btn { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 16px; background: none; border: none; cursor: pointer; font-size: 12.5px; color: var(--muted); text-align: left; transition: color 0.1s, background 0.1s; border-left: 2px solid transparent; }
-  .tab-btn:hover { color: var(--text); background: var(--bg); }
-  .tab-btn.active { color: var(--text); font-weight: 600; border-left-color: var(--accent); background: var(--bg); }
-  .tab-icon { font-size: 13px; width: 16px; text-align: center; }
+/* ── Table ───────────────────────────────────────────────────── */
+.tw{background:#0d0d0d;border:1px solid #1a1a1a;border-radius:8px;overflow:hidden;margin-bottom:20px}
+.tw table{width:100%;border-collapse:collapse}
+.tw th{text-align:left;padding:8px 13px;font-size:10px;color:#333;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #141414;font-weight:500;white-space:nowrap}
+.tw td{padding:8px 13px;border-bottom:1px solid #111;vertical-align:middle}
+.tw tr:last-child td{border-bottom:none}
+.tw tr.ck td{cursor:pointer}
+.tw tr.ck:hover td{background:#0f0f0f}
 
-  /* ── Main ── */
-  .main { flex: 1; overflow-y: auto; padding: 22px 24px; }
-  .section { display: none; }
-  .section.active { display: block; }
+/* ── Expand ──────────────────────────────────────────────────── */
+.xrow{background:#090909}
+.xrow td{padding:0!important}
+.xi{padding:6px 13px 14px 26px}
 
-  /* ── Section header ── */
-  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 10px; flex-wrap: wrap; }
-  .section-title { font-size: 15px; font-weight: 700; }
-  .badge { background: var(--bg); border: 1px solid var(--border); border-radius: 20px; padding: 2px 8px; font-size: 11px; color: var(--muted); }
-  .header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+/* ── Video rows ──────────────────────────────────────────────── */
+.vr{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid #111}
+.vr:last-of-type{border-bottom:none}
+.vn{color:#2a2a2a;font-size:11px;width:22px;flex-shrink:0;padding-top:2px;font-variant-numeric:tabular-nums}
+.vi{flex:1;min-width:0}
+.vt{font-size:12px;color:#60a5fa;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vt a:hover{text-decoration:underline}
+.ve{font-size:11px;color:#f87171;margin-top:1px}
+.vm{font-size:11px;color:#333;margin-top:1px}
+.vacts{display:flex;align-items:center;gap:5px;flex-shrink:0}
 
-  /* ── Stats cards ── */
-  .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-bottom: 24px; }
-  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
-  .stat-label { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
-  .stat-value { font-size: 24px; font-weight: 700; margin-top: 4px; letter-spacing: -1px; }
-  .stat-sub { font-size: 10.5px; color: var(--muted); margin-top: 2px; }
-  .stat-card.green .stat-value  { color: var(--accent); }
-  .stat-card.amber .stat-value  { color: var(--warn); }
-  .stat-card.red .stat-value    { color: var(--danger); }
-  .stat-card.blue .stat-value   { color: var(--blue); }
-  .stat-card.purple .stat-value { color: var(--purple); }
+/* ── Inject form ─────────────────────────────────────────────── */
+.injf{margin:4px 0 8px 22px;background:#0a0a0a;border:1px solid #1a1a1a;border-radius:6px;padding:10px}
+.injf label{display:block;font-size:10px;color:#444;margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px}
+.injf textarea{height:90px;resize:vertical;font-family:monospace;font-size:11px;line-height:1.5}
+.injf-acts{display:flex;gap:6px;margin-top:7px}
 
-  /* ── Search / filter row ── */
-  .search-row { margin-bottom: 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .search-input { width: 240px; padding: 6px 12px; border: 1px solid var(--border); border-radius: 7px; font-size: 13px; background: var(--surface); outline: none; }
-  .search-input:focus { border-color: #aaa; }
-  .filter-select { padding: 6px 10px; border: 1px solid var(--border); border-radius: 7px; font-size: 13px; background: var(--surface); outline: none; cursor: pointer; }
+/* ── Action cards ────────────────────────────────────────────── */
+.acrow{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.ac{background:#0d0d0d;border:1px solid #1a1a1a;border-radius:8px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:14px;min-width:220px}
+.ac-info label{font-size:12px;color:#999;display:block;font-weight:500}
+.ac-info p{font-size:11px;color:#333;margin-top:2px}
 
-  /* ── Table ── */
-  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
-  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
-  thead { background: var(--bg); }
-  th { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); font-weight: 600; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; }
-  td { padding: 7px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
-  tr:last-child td { border-bottom: none; }
-  tr:hover td { background: #fafaf8; }
-  .mono { font-family: "SF Mono", "Fira Code", monospace; font-size: 11px; color: var(--muted); }
-  .truncate { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .pill { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; white-space: nowrap; }
-  .pill-green  { background: var(--accent-light); color: var(--accent); }
-  .pill-amber  { background: var(--warn-light);   color: var(--warn); }
-  .pill-red    { background: var(--danger-light); color: var(--danger); }
-  .pill-blue   { background: var(--blue-light);   color: var(--blue); }
-  .pill-purple { background: var(--purple-light); color: var(--purple); }
-  .pill-gray   { background: #f0f0f0; color: #666; }
+/* ── Pills ───────────────────────────────────────────────────── */
+.pill{display:inline-flex;align-items:center;font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px;white-space:nowrap;letter-spacing:.2px}
+.pg{background:#14532d18;color:#4ade80;border:1px solid #14532d40}
+.pb{background:#1e3a5f18;color:#60a5fa;border:1px solid #1e3a5f40}
+.pa{background:#78350f18;color:#fbbf24;border:1px solid #78350f40}
+.pr{background:#7f1d1d18;color:#f87171;border:1px solid #7f1d1d40}
+.pz{background:#1a1a1a;color:#444;border:1px solid #222}
 
-  /* ── Mini progress bar ── */
-  .mini-bar-wrap { display: flex; align-items: center; gap: 8px; }
-  .mini-bar { flex: 1; min-width: 50px; height: 5px; background: #eee; border-radius: 3px; overflow: hidden; }
-  .mini-bar-fill { height: 100%; background: var(--accent); border-radius: 3px; }
-  .mini-bar-pct { font-size: 11px; color: var(--muted); white-space: nowrap; }
+/* ── Buttons ─────────────────────────────────────────────────── */
+.btn{border-radius:5px;padding:3px 9px;font-size:11px;font-weight:500;border:1px solid transparent;white-space:nowrap}
+.bg{background:#14532d18;color:#4ade80;border-color:#14532d44}.bg:hover{background:#14532d30}
+.ba{background:#78350f18;color:#fbbf24;border-color:#78350f44}.ba:hover{background:#78350f30}
+.bb{background:#1e3a5f18;color:#60a5fa;border-color:#1e3a5f44}.bb:hover{background:#1e3a5f30}
+.bd{background:#7f1d1d18;color:#f87171;border-color:#7f1d1d44}.bd:hover{background:#7f1d1d30}
+.bw{background:#1c1c1c;color:#888;border-color:#242424}.bw:hover{color:#ccc;border-color:#333}
 
-  /* ── Action buttons ── */
-  .actions { display: flex; gap: 4px; flex-wrap: nowrap; }
-  .btn { padding: 3px 8px; border-radius: 5px; border: 1px solid var(--border); font-size: 11px; cursor: pointer; background: none; color: var(--text); transition: all 0.1s; white-space: nowrap; font-weight: 500; }
-  .btn:hover { background: var(--bg); }
-  .btn-blue   { color: var(--blue);   border-color: #bcd4ff; } .btn-blue:hover   { background: var(--blue-light); }
-  .btn-green  { color: var(--accent); border-color: #b2d8c3; } .btn-green:hover  { background: var(--accent-light); }
-  .btn-amber  { color: var(--warn);   border-color: #fcd68a; } .btn-amber:hover  { background: var(--warn-light); }
-  .btn-danger { color: var(--danger); border-color: #fca5a5; } .btn-danger:hover { background: var(--danger-light); }
-  .btn-purple { color: var(--purple); border-color: #c4b5fd; } .btn-purple:hover { background: var(--purple-light); }
-  .btn[disabled] { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+/* ── Progress ────────────────────────────────────────────────── */
+.prog{background:#181818;border-radius:99px;height:3px;width:72px;overflow:hidden;display:inline-block;vertical-align:middle}
+.progb{background:#3b82f6;height:100%;border-radius:99px}
+.progb.done{background:#22c55e}
 
-  /* ── Toolbar action btn ── */
-  .action-btn { padding: 6px 14px; border-radius: 7px; border: 1px solid var(--border); font-size: 12px; cursor: pointer; background: var(--surface); color: var(--text); font-weight: 500; transition: all 0.1s; }
-  .action-btn:hover { background: var(--bg); }
-  .action-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-  .action-btn.primary:hover { opacity: 0.88; }
-  .action-btn.danger { color: var(--danger); border-color: var(--danger-light); }
-  .action-btn.danger:hover { background: var(--danger-light); }
+/* ── Filter bar ──────────────────────────────────────────────── */
+.fbar{display:flex;gap:3px}
+.fb{background:#141414;color:#444;border:1px solid #1a1a1a;border-radius:5px;padding:3px 10px;font-size:11px}
+.fb.on{background:#1c1c1c;color:#e2e2e2;border-color:#2a2a2a}
 
-  /* ── Form controls ── */
-  .form-group { margin-bottom: 14px; }
-  .form-label { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; font-weight: 600; }
-  .form-input, .form-select, .form-textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 7px; font-size: 13px; background: var(--bg); outline: none; font-family: inherit; transition: border-color 0.15s; }
-  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); background: #fff; }
-  .form-textarea { resize: vertical; min-height: 120px; }
-  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+/* ── Row actions ─────────────────────────────────────────────── */
+.ra{display:flex;gap:5px;align-items:center}
 
-  /* ── Empty / loading ── */
-  .empty { padding: 40px; text-align: center; color: var(--muted); }
-  .loading { padding: 60px; text-align: center; color: var(--muted); }
-  .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
+/* ── Toast ───────────────────────────────────────────────────── */
+#toast{position:fixed;bottom:18px;right:18px;display:flex;flex-direction:column;gap:5px;z-index:9999}
+.ti{background:#141414;border:1px solid #222;border-radius:7px;padding:8px 13px;font-size:12px;max-width:280px;animation:tin .18s ease;pointer-events:none}
+.tok{border-color:#14532d55;color:#4ade80}
+.terr{border-color:#7f1d1d55;color:#f87171}
+.tinfo{border-color:#1e3a5f55;color:#60a5fa}
+@keyframes tin{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
 
-  /* ── Pulse dot ── */
-  .pulse { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
-  .pulse.active { animation: pulseAnim 1.5s ease-in-out infinite; }
-  @keyframes pulseAnim { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
-
-  /* ── Analytics ── */
-  .funnel-row { display: flex; gap: 0; margin-bottom: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
-  .funnel-step { flex: 1; padding: 16px 12px; border-right: 1px solid var(--border); text-align: center; }
-  .funnel-step:last-child { border-right: none; }
-  .funnel-num { font-size: 28px; font-weight: 700; letter-spacing: -1px; }
-  .funnel-label { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
-  .funnel-pct { font-size: 11px; color: var(--accent); margin-top: 2px; }
-  .chart-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-  .chart-bar-label { width: 80px; font-size: 11px; color: var(--muted); text-align: right; flex-shrink: 0; }
-  .chart-bar-bg { flex: 1; height: 18px; background: #f0f0f0; border-radius: 4px; overflow: hidden; }
-  .chart-bar-fill { height: 100%; background: var(--accent); border-radius: 4px; transition: width 0.4s; }
-  .chart-bar-val { width: 36px; font-size: 11px; color: var(--muted); }
-  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-  @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
-
-  /* ── Feature flags ── */
-  .flags-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
-  .flag-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-  .flag-info { min-width: 0; }
-  .flag-name { font-weight: 600; font-size: 13px; }
-  .flag-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
-  .toggle-wrap { flex-shrink: 0; }
-  .toggle { position: relative; width: 40px; height: 22px; }
-  .toggle input { opacity: 0; width: 0; height: 0; }
-  .toggle-slider { position: absolute; inset: 0; background: #ddd; border-radius: 22px; cursor: pointer; transition: background 0.2s; }
-  .toggle-slider:before { content: ''; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: transform 0.2s; }
-  .toggle input:checked + .toggle-slider { background: var(--accent); }
-  .toggle input:checked + .toggle-slider:before { transform: translateX(18px); }
-
-  /* ── Broadcast ── */
-  .broadcast-wrap { max-width: 640px; }
-  .broadcast-preview { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-top: 12px; font-size: 12px; color: var(--muted); min-height: 60px; }
-
-  /* ── Audit log ── */
-  .audit-action { font-family: "SF Mono", monospace; font-size: 11px; background: var(--bg); padding: 1px 6px; border-radius: 4px; border: 1px solid var(--border); }
-
-  /* ── System ── */
-  .sys-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
-  .sys-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
-  .sys-key { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-  .sys-val { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
-
-  /* ── Back button ── */
-  .back-btn { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border: 1px solid var(--border); border-radius: 6px; background: none; cursor: pointer; font-size: 12px; color: var(--muted); margin-bottom: 14px; transition: all 0.1s; }
-  .back-btn:hover { background: var(--bg); color: var(--text); }
-
-  /* ── Modal ── */
-  .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 200; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(2px); animation: fadeIn 0.15s ease; }
-  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-  .modal-box { background: var(--surface); border-radius: 14px; width: min(960px, 96vw); height: 92vh; display: flex; flex-direction: column; box-shadow: 0 24px 64px rgba(0,0,0,0.22); animation: popUp 0.2s ease; }
-  .modal-box.wide { width: min(1100px, 96vw); }
-  .modal-box.narrow { width: min(560px, 96vw); height: auto; max-height: 86vh; overflow-y: auto; }
-  @keyframes popUp { from { transform: scale(0.94) translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
-  .modal-header { display: flex; align-items: flex-start; justify-content: space-between; padding: 16px 20px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0; gap: 12px; }
-  .modal-title { font-weight: 700; font-size: 15px; }
-  .modal-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
-  .modal-close { background: none; border: none; cursor: pointer; font-size: 20px; color: var(--muted); line-height: 1; padding: 0 4px; flex-shrink: 0; }
-  .modal-close:hover { color: var(--text); }
-  .modal-nav { display: flex; align-items: center; gap: 6px; padding: 10px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; flex-wrap: wrap; }
-  .slot-btn { padding: 4px 10px; border: 1px solid var(--border); border-radius: 6px; background: none; cursor: pointer; font-size: 12px; color: var(--muted); transition: all 0.1s; }
-  .slot-btn:hover { background: var(--bg); color: var(--text); }
-  .slot-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .modal-body { flex: 1; overflow: hidden; min-height: 0; }
-  .modal-body.scrollable { overflow-y: auto; padding: 20px; }
-  .modal-body iframe { width: 100%; height: 100%; border: none; display: block; }
-  .modal-footer { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; flex-shrink: 0; }
-
-  /* ── Transcript ── */
-  .transcript-pre { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; font-family: "SF Mono", "Fira Code", monospace; font-size: 12px; line-height: 1.7; white-space: pre-wrap; word-break: break-word; color: var(--text); max-height: 55vh; overflow-y: auto; }
-  .transcript-edit { width: 100%; font-family: "SF Mono", "Fira Code", monospace; font-size: 12px; line-height: 1.7; padding: 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); outline: none; resize: vertical; min-height: 55vh; }
-  .transcript-edit:focus { border-color: var(--accent); background: #fff; }
-  .transcript-meta { margin-bottom: 12px; display: flex; gap: 16px; font-size: 12px; color: var(--muted); }
-
-  /* ── Confirm dialog ── */
-  .confirm-box { background: var(--surface); border-radius: 12px; padding: 28px 28px 20px; width: min(360px, 94vw); box-shadow: 0 24px 64px rgba(0,0,0,0.18); animation: popUp 0.18s ease; }
-  .confirm-icon { font-size: 28px; margin-bottom: 10px; }
-  .confirm-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
-  .confirm-msg { font-size: 13px; color: var(--muted); margin-bottom: 20px; line-height: 1.6; }
-  .confirm-actions { display: flex; gap: 8px; justify-content: flex-end; }
-
-  /* ── Search drop ── */
-  .search-item { padding: 8px 14px; font-size: 12px; cursor: pointer; border-bottom: 1px solid var(--border); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .search-item:last-child { border-bottom: none; }
-  .search-item:hover { background: var(--bg); }
-
-  /* ── Toast ── */
-  #toast { position: fixed; bottom: 20px; right: 20px; z-index: 999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
-  .toast-item { background: var(--text); color: #fff; border-radius: 8px; padding: 10px 16px; font-size: 13px; font-weight: 500; animation: slideUp 0.2s ease; max-width: 320px; }
-  .toast-item.success { background: var(--accent); }
-  .toast-item.error { background: var(--danger); }
-  @keyframes slideUp { from { transform: translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } }
+/* ── Misc ────────────────────────────────────────────────────── */
+.empty{padding:28px;text-align:center;color:#2a2a2a;font-size:12px}
+.loading{padding:22px;text-align:center;color:#333;font-size:12px}
+.mono{font-family:'JetBrains Mono',monospace,monospace;font-size:11px}
+.ell{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mb{margin-bottom:20px}
 </style>
 </head>
 <body>
 
-<!-- ── Login ── -->
-<div id="login-screen">
-  <div class="login-card">
-    <div class="login-brand">CAPSULE <span>Admin</span></div>
-    <div class="login-title">Sign in</div>
-    <div class="login-field">
-      <label class="login-label">Username</label>
-      <input class="login-input" id="login-user" type="text" autocomplete="username" placeholder="admin" onkeydown="if(event.key==='Enter')doLogin()">
+<!-- LOGIN -->
+<div id="login">
+  <div class="lbox">
+    <h1>Capsule</h1>
+    <p>Admin console</p>
+    <div class="lfield">
+      <label>Username</label>
+      <input id="lu" type="text" placeholder="ohm" autocomplete="username">
     </div>
-    <div class="login-field">
-      <label class="login-label">Password</label>
-      <input class="login-input" id="login-pass" type="password" autocomplete="current-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    <div class="lfield">
+      <label>Password</label>
+      <input id="lp" type="password" placeholder="••••••••" autocomplete="current-password"
+             onkeydown="if(event.key==='Enter')doLogin()">
     </div>
-    <button class="login-btn" onclick="doLogin()">Sign in →</button>
-    <div class="login-error" id="login-error"></div>
+    <button class="lbtn" onclick="doLogin()">Sign in</button>
+    <div class="lerr" id="lerr"></div>
   </div>
 </div>
 
-<!-- ── App ── -->
-<div id="app" style="display:none">
-<div class="topbar">
-  <div class="topbar-brand">Capsule <span>Admin — God Mode</span></div>
-  <div style="flex:1;max-width:320px;margin:0 16px;position:relative">
-    <input id="global-search" class="search-input" style="width:100%;padding-left:28px;font-size:12px"
-           placeholder="⌘K  Search users, courses, emails…"
-           oninput="globalSearch(this.value)" onfocus="showSearchDrop()" onblur="setTimeout(hideSearchDrop,200)">
-    <div id="search-drop" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:300;max-height:340px;overflow-y:auto;margin-top:4px"></div>
+<!-- APP -->
+<div id="app">
+  <div class="bar">
+    <div class="brand">CAPSULE<em>admin</em></div>
+    <nav>
+      <button class="tb on" data-tab="overview"  onclick="goTab('overview',this)">Overview</button>
+      <button class="tb"    data-tab="users"     onclick="goTab('users',this)">Users</button>
+      <button class="tb"    data-tab="courses"   onclick="goTab('courses',this)">Courses</button>
+      <button class="tb"    data-tab="jobs"       onclick="goTab('jobs',this)">Jobs</button>
+      <button class="tb"    data-tab="emails"    onclick="goTab('emails',this)">Emails</button>
+    </nav>
+    <div class="bar-r">
+      <div class="sdot" id="sdot"></div>
+      <span class="ts" id="ts">—</span>
+      <button class="bsm" onclick="loadData()">↻ Refresh</button>
+      <button class="bgh" onclick="signout()">Sign out</button>
+    </div>
   </div>
-  <div class="topbar-right">
-    <span id="last-updated" style="font-size:11px;color:var(--muted)"></span>
-    <button class="topbar-btn" onclick="load()">↺ Refresh</button>
-    <button class="topbar-btn danger" onclick="doLogout()">Sign out</button>
-  </div>
-</div>
 
-<div class="shell">
-  <!-- Sidebar -->
-  <nav class="sidebar">
-    <div class="sidebar-section">Overview</div>
-    <button class="tab-btn active" data-tab="dashboard" onclick="switchTab('dashboard')"><span class="tab-icon">📊</span> Dashboard</button>
-    <div class="sidebar-divider"></div>
-    <div class="sidebar-section">Data</div>
-    <button class="tab-btn" data-tab="users"       onclick="switchTab('users')">     <span class="tab-icon">👤</span> Users</button>
-    <button class="tab-btn" data-tab="courses"     onclick="switchTab('courses')">   <span class="tab-icon">📚</span> Courses</button>
-    <button class="tab-btn" data-tab="emails"      onclick="switchTab('emails')">    <span class="tab-icon">✉️</span> Emails</button>
-    <button class="tab-btn" data-tab="transcripts" onclick="switchTab('transcripts')"><span class="tab-icon">📄</span> Transcripts</button>
-    <div class="sidebar-divider"></div>
-    <div class="sidebar-section">Growth</div>
-    <button class="tab-btn" data-tab="analytics"   onclick="switchTab('analytics')"> <span class="tab-icon">📈</span> Analytics</button>
-    <button class="tab-btn" data-tab="broadcast"   onclick="switchTab('broadcast')"> <span class="tab-icon">📢</span> Broadcast</button>
-    <div class="sidebar-divider"></div>
-    <div class="sidebar-section">System</div>
-    <button class="tab-btn" data-tab="llm"         onclick="switchTab('llm')">       <span class="tab-icon">🧠</span> LLM Traces</button>
-    <button class="tab-btn" data-tab="jobs"        onclick="switchTab('jobs')">      <span class="tab-icon">⚙️</span> Jobs</button>
-    <button class="tab-btn" data-tab="flags"       onclick="switchTab('flags')">     <span class="tab-icon">🏳️</span> Feature Flags</button>
-    <button class="tab-btn" data-tab="audit"       onclick="switchTab('audit')">     <span class="tab-icon">🔍</span> Audit Log</button>
-    <button class="tab-btn" data-tab="system"      onclick="switchTab('system')">    <span class="tab-icon">🖥</span> System</button>
-  </nav>
-
-  <!-- Main -->
-  <main class="main">
-
-    <!-- ── DASHBOARD ── -->
-    <div class="section active" id="tab-dashboard">
-      <div class="section-header">
-        <div class="section-title">Dashboard</div>
-        <div class="header-actions">
-          <button class="action-btn" onclick="runCron()">▶ Run Cron</button>
-          <button class="action-btn primary" onclick="switchTab('broadcast')">📢 Broadcast</button>
-        </div>
-      </div>
-      <div class="stats-grid" id="dash-stats"></div>
-
-      <!-- Stale job warning -->
-      <div id="stale-job-alert" style="display:none;background:var(--danger-light);border:1px solid #fca5a5;border-radius:10px;padding:14px 16px;margin-bottom:16px;font-size:12px;color:var(--danger)"></div>
-
-      <!-- Two-column: heartbeat + activity feed -->
-      <div style="display:grid;grid-template-columns:1fr 320px;gap:16px;margin-bottom:20px">
-        <!-- Heartbeat chart -->
-        <div>
-          <div style="font-size:13px;font-weight:600;margin-bottom:10px">Scheduler Heartbeat — Last 14 Days</div>
-          <div class="table-wrap" style="padding:16px" id="dash-heartbeat">
-            <div class="loading">Loading…</div>
-          </div>
-        </div>
-        <!-- Live activity feed -->
-        <div>
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-            <div style="font-size:13px;font-weight:600">Live Activity</div>
-            <span class="pulse active" style="background:var(--accent)"></span>
-          </div>
-          <div id="activity-feed" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;max-height:260px;overflow-y:auto">
-            <div class="loading">Loading…</div>
-          </div>
-        </div>
-      </div>
-
-      <div style="font-size:13px;font-weight:600;margin-bottom:10px">Recent Courses</div>
-      <div class="table-wrap" id="dash-courses-wrap">
-        <div class="loading">Loading…</div>
-      </div>
-    </div>
-
-    <!-- ── USERS ── -->
-    <div class="section" id="tab-users">
-      <div class="section-header">
-        <div class="section-title">Users <span class="badge" id="users-badge">—</span></div>
-        <div class="header-actions">
-          <button class="action-btn" id="health-filter-all"    onclick="filterUserHealth('')">All</button>
-          <button class="action-btn" id="health-filter-active" onclick="filterUserHealth('active')" style="color:var(--accent)">🟢 Active</button>
-          <button class="action-btn" id="health-filter-risk"   onclick="filterUserHealth('at_risk')" style="color:var(--warn)">🟡 At Risk</button>
-          <button class="action-btn" id="health-filter-ghost"  onclick="filterUserHealth('ghost')" style="color:var(--danger)">🔴 Ghost</button>
-        </div>
-      </div>
-      <div class="search-row">
-        <input class="search-input" placeholder="Search by email…" oninput="filterTable('users-table-wrap', this.value)">
-      </div>
-      <div class="table-wrap" id="users-table-wrap">
-        <div class="loading">Loading…</div>
-      </div>
-    </div>
-
-    <!-- ── COURSES ── -->
-    <div class="section" id="tab-courses">
-      <!-- List view -->
-      <div id="courses-list-view">
-        <div class="section-header">
-          <div class="section-title">Courses <span class="badge" id="courses-badge">—</span></div>
-        </div>
-        <div class="search-row">
-          <input class="search-input" placeholder="Search by title or email…" oninput="filterTable('courses-table-wrap', this.value)">
-          <select class="filter-select" onchange="filterCourseStatus(this.value)">
-            <option value="">All statuses</option>
-            <option value="active">Active</option>
-            <option value="processing">Processing</option>
-            <option value="paused">Paused</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
-        </div>
-        <div class="table-wrap" id="courses-table-wrap">
-          <div class="loading">Loading…</div>
-        </div>
-      </div>
-      <!-- Videos drill-down view -->
-      <div id="courses-video-view" style="display:none">
-        <button class="back-btn" onclick="showCoursesList()">← Back to courses</button>
-        <div class="section-header">
-          <div class="section-title" id="video-view-title">Videos</div>
-          <div class="header-actions">
-            <button class="action-btn" onclick="reprocessCurrentCourse()">↻ Reprocess All</button>
-            <button class="action-btn danger" onclick="cancelCurrentCourse()">✕ Cancel Course</button>
-          </div>
-        </div>
-        <div class="table-wrap" id="videos-table-wrap">
-          <div class="loading">Loading…</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── EMAILS ── -->
-    <div class="section" id="tab-emails">
-      <div class="section-header">
-        <div class="section-title">Emails <span class="badge" id="emails-badge">—</span></div>
-      </div>
-      <div class="search-row">
-        <input class="search-input" placeholder="Search subject, user, course…" oninput="filterTable('emails-table-wrap', this.value)">
-        <select class="filter-select" onchange="loadEmails(this.value)">
-          <option value="">All statuses</option>
-          <option value="pending">Pending</option>
-          <option value="sent">Sent</option>
-          <option value="cancelled">Cancelled</option>
-        </select>
-      </div>
-      <div class="table-wrap" id="emails-table-wrap">
-        <div class="loading">Loading…</div>
-      </div>
-    </div>
-
-    <!-- ── TRANSCRIPTS ── -->
-    <div class="section" id="tab-transcripts">
-      <div class="section-header">
-        <div class="section-title">Transcripts <span class="badge" id="transcripts-badge">—</span></div>
-      </div>
-      <div class="search-row">
-        <input class="search-input" placeholder="Search by video title or course…" oninput="filterTable('transcripts-table-wrap', this.value)">
-      </div>
-      <div class="table-wrap" id="transcripts-table-wrap">
-        <div class="loading">Loading…</div>
-      </div>
-    </div>
-
-    <!-- ── ANALYTICS ── -->
-    <div class="section" id="tab-analytics">
-      <div class="section-header">
-        <div class="section-title">Analytics</div>
-        <button class="action-btn" onclick="loadAnalytics()">↺ Refresh</button>
-      </div>
-      <div id="analytics-body"><div class="loading">Loading…</div></div>
-    </div>
-
-    <!-- ── BROADCAST ── -->
-    <div class="section" id="tab-broadcast">
-      <div class="section-header">
-        <div class="section-title">Broadcast Email</div>
-      </div>
-      <div class="broadcast-wrap">
-        <p style="color:var(--muted);font-size:12px;margin-bottom:16px">Send an email to all active (non-paused) users. Use HTML for rich content.</p>
-        <div class="form-group">
-          <label class="form-label">Subject</label>
-          <input class="form-input" id="bc-subject" placeholder="Announcement: Something cool">
-        </div>
-        <div class="form-group">
-          <label class="form-label">HTML Body</label>
-          <textarea class="form-textarea" id="bc-body" placeholder="<p>Hello!</p>" style="min-height:200px;font-family:monospace;font-size:12px"></textarea>
-        </div>
-        <div style="display:flex;gap:10px;align-items:center">
-          <button class="action-btn primary" onclick="sendBroadcast()">📢 Send to all users</button>
-          <button class="action-btn" onclick="previewBroadcast()">👁 Preview HTML</button>
-        </div>
-        <div class="broadcast-preview" id="bc-preview" style="display:none"></div>
-      </div>
-    </div>
-
-    <!-- ── LLM TRACES ── -->
-    <div class="section" id="tab-llm">
-      <div class="section-header">
-        <div class="section-title">LLM Traces</div>
-        <div class="header-actions">
-          <span style="font-size:11px;color:var(--muted)">From OpenRouter webhook · auto-updates</span>
-          <button class="action-btn" onclick="loadLLM()">↺ Refresh</button>
-        </div>
-      </div>
-      <div id="llm-body"><div class="loading">Loading…</div></div>
-    </div>
-
-    <!-- ── JOBS ── -->
-    <div class="section" id="tab-jobs">
-      <div class="section-header">
-        <div class="section-title">Jobs</div>
-        <div class="header-actions">
-          <span class="pulse active" id="jobs-pulse"></span>
-          <span style="font-size:11px;color:var(--muted)" id="jobs-refresh-label">Auto-refresh every 10s</span>
-        </div>
-      </div>
-      <div class="table-wrap" id="jobs-table-wrap">
-        <div class="loading">Loading…</div>
-      </div>
-    </div>
-
-    <!-- ── FEATURE FLAGS ── -->
-    <div class="section" id="tab-flags">
-      <div class="section-header">
-        <div class="section-title">Feature Flags</div>
-      </div>
-      <p style="color:var(--muted);font-size:12px;margin-bottom:16px">Toggle features on/off without a deploy. Changes take effect immediately.</p>
-      <div class="flags-grid" id="flags-grid">
-        <div class="loading">Loading…</div>
-      </div>
-    </div>
-
-    <!-- ── AUDIT LOG ── -->
-    <div class="section" id="tab-audit">
-      <div class="section-header">
-        <div class="section-title">Audit Log</div>
-        <button class="action-btn" onclick="loadAudit()">↺ Refresh</button>
-      </div>
-      <div class="search-row">
-        <input class="search-input" placeholder="Search actions…" oninput="filterTable('audit-table-wrap', this.value)">
-      </div>
-      <div class="table-wrap" id="audit-table-wrap">
-        <div class="loading">Loading…</div>
-      </div>
-    </div>
-
-    <!-- ── SYSTEM ── -->
-    <div class="section" id="tab-system">
-      <div class="section-header">
-        <div class="section-title">System</div>
-        <div class="header-actions">
-          <button class="action-btn" onclick="loadSystem()">↺ Refresh</button>
-          <a id="db-download-btn" class="action-btn" onclick="downloadDB()">⬇ Download DB</a>
-        </div>
-      </div>
-      <div id="system-body"><div class="loading">Loading…</div></div>
-    </div>
-
-  </main>
-</div><!-- /shell -->
-</div><!-- /app -->
-
-<!-- ── Email preview modal ── -->
-<div class="modal-backdrop" id="preview-modal" style="display:none" onclick="if(event.target===this)closeModal('preview-modal')">
-  <div class="modal-box wide">
-    <div class="modal-header">
-      <div><div class="modal-title" id="preview-title">Email Preview</div><div class="modal-sub" id="preview-sub"></div></div>
-      <button class="modal-close" onclick="closeModal('preview-modal')">×</button>
-    </div>
-    <div class="modal-nav" id="preview-slots"></div>
-    <div class="modal-body"><iframe id="preview-iframe" sandbox="allow-same-origin"></iframe></div>
+  <div class="wrap">
+    <div id="tab-overview"></div>
+    <div id="tab-users"   style="display:none"></div>
+    <div id="tab-courses" style="display:none"></div>
+    <div id="tab-jobs"    style="display:none"></div>
+    <div id="tab-emails"  style="display:none"></div>
   </div>
 </div>
 
-<!-- ── Transcript view/edit modal ── -->
-<div class="modal-backdrop" id="transcript-modal" style="display:none" onclick="if(event.target===this)closeModal('transcript-modal')">
-  <div class="modal-box">
-    <div class="modal-header">
-      <div><div class="modal-title" id="tr-modal-title">Transcript</div><div class="modal-sub" id="tr-modal-meta"></div></div>
-      <div style="display:flex;gap:8px">
-        <button class="action-btn" id="tr-edit-btn" onclick="toggleTranscriptEdit()">✏️ Edit</button>
-        <button class="modal-close" onclick="closeModal('transcript-modal')">×</button>
-      </div>
-    </div>
-    <div class="modal-body scrollable">
-      <pre class="transcript-pre" id="tr-view"></pre>
-      <textarea class="transcript-edit" id="tr-edit" style="display:none"></textarea>
-    </div>
-    <div class="modal-footer" id="tr-footer" style="display:none">
-      <button class="action-btn" onclick="closeModal('transcript-modal')">Cancel</button>
-      <button class="action-btn primary" onclick="saveTranscript()">💾 Save Transcript</button>
-    </div>
-  </div>
-</div>
-
-<!-- ── Edit email modal ── -->
-<div class="modal-backdrop" id="edit-email-modal" style="display:none" onclick="if(event.target===this)closeModal('edit-email-modal')">
-  <div class="modal-box narrow" style="padding:0">
-    <div class="modal-header">
-      <div><div class="modal-title">Edit Email</div><div class="modal-sub" id="edit-email-sub"></div></div>
-      <button class="modal-close" onclick="closeModal('edit-email-modal')">×</button>
-    </div>
-    <div style="padding:20px">
-      <div class="form-group">
-        <label class="form-label">Subject</label>
-        <input class="form-input" id="edit-email-subject" placeholder="Email subject">
-      </div>
-      <div class="form-group">
-        <label class="form-label">HTML Body</label>
-        <textarea class="form-textarea" id="edit-email-body" style="min-height:200px;font-family:monospace;font-size:11px"></textarea>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="action-btn" onclick="closeModal('edit-email-modal')">Cancel</button>
-      <button class="action-btn primary" onclick="saveEmailEdit()">💾 Save</button>
-    </div>
-  </div>
-</div>
-
-<!-- ── Reschedule email modal ── -->
-<div class="modal-backdrop" id="reschedule-modal" style="display:none" onclick="if(event.target===this)closeModal('reschedule-modal')">
-  <div class="modal-box narrow" style="padding:0">
-    <div class="modal-header">
-      <div><div class="modal-title">Reschedule Email</div><div class="modal-sub" id="reschedule-sub"></div></div>
-      <button class="modal-close" onclick="closeModal('reschedule-modal')">×</button>
-    </div>
-    <div style="padding:20px">
-      <div class="form-group">
-        <label class="form-label">New delivery time (UTC)</label>
-        <input class="form-input" id="reschedule-dt" type="datetime-local">
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="action-btn" onclick="closeModal('reschedule-modal')">Cancel</button>
-      <button class="action-btn primary" onclick="saveReschedule()">📅 Reschedule</button>
-    </div>
-  </div>
-</div>
-
-<!-- ── Edit user modal ── -->
-<div class="modal-backdrop" id="edit-user-modal" style="display:none" onclick="if(event.target===this)closeModal('edit-user-modal')">
-  <div class="modal-box narrow" style="padding:0">
-    <div class="modal-header">
-      <div><div class="modal-title">Edit User</div><div class="modal-sub" id="edit-user-sub"></div></div>
-      <button class="modal-close" onclick="closeModal('edit-user-modal')">×</button>
-    </div>
-    <div style="padding:20px">
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Frequency</label>
-          <select class="form-select" id="eu-frequency">
-            <option value="1x">1x / day</option>
-            <option value="2x">2x / day</option>
-            <option value="3x">3x / day</option>
-            <option value="5x">5x / day</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Tone</label>
-          <select class="form-select" id="eu-tone">
-            <option value="Casual">Casual</option>
-            <option value="Professional">Professional</option>
-            <option value="Academic">Academic</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Depth</label>
-          <select class="form-select" id="eu-depth">
-            <option value="Essentials">Essentials</option>
-            <option value="Mix">Mix</option>
-            <option value="Deep Dive">Deep Dive</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Timezone</label>
-          <input class="form-input" id="eu-timezone" placeholder="UTC">
-        </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="action-btn" onclick="closeModal('edit-user-modal')">Cancel</button>
-      <button class="action-btn primary" onclick="saveUserEdit()">💾 Save</button>
-    </div>
-  </div>
-</div>
-
-<!-- ── Confirm dialog ── -->
-<div class="modal-backdrop" id="confirm-modal" style="display:none">
-  <div class="confirm-box">
-    <div class="confirm-icon" id="confirm-icon">⚠️</div>
-    <div class="confirm-title" id="confirm-title">Are you sure?</div>
-    <div class="confirm-msg" id="confirm-msg"></div>
-    <div class="confirm-actions">
-      <button class="action-btn" onclick="closeModal('confirm-modal')">Cancel</button>
-      <button class="action-btn danger" id="confirm-ok-btn" onclick="doConfirm()">Confirm</button>
-    </div>
-  </div>
-</div>
-
-<!-- ── Toast ── -->
 <div id="toast"></div>
 
 <script>
-// ─────────────────────────────────────────────────────────────────────────────
-// State
-// ─────────────────────────────────────────────────────────────────────────────
-let _token = '';
-let _data = {};          // from /api/admin/data
-let _openStats = {};     // from /api/admin/open-stats
-let _heartbeat = [];     // from /api/admin/heartbeat
-let _activity  = [];     // from /api/admin/activity
-let _userHealth = [];    // from /api/admin/user-health
-let _staleJobs  = [];    // from /api/admin/stale-jobs
-let _slotStats  = [];    // from /api/admin/slot-stats
-let _dowHeatmap = [];    // from /api/admin/dow-heatmap
-let _unitEcon   = {};    // from /api/admin/unit-economics
-let _activeHealthFilter = '';
-let _emails = [];        // from /api/admin/emails
-let _transcripts = [];   // from /api/admin/transcripts
-let _currentCourse = null;
-let _currentVideoId = null;
-let _editEmailId = null;
-let _rescheduleEmailId = null;
-let _editUserId = null;
-let _trVideoId = null;
-let _trEditMode = false;
-let _previewEmails = [];
-let _confirmCb = null;
-let _jobsTimer = null;
+// ── State ─────────────────────────────────────────────────────────────────
+let _tok  = localStorage.getItem('cap_tok') || '';
+let _data = null;
+let _tab  = 'overview';
+let _emailFilter = 'all';
+let _xCourses = new Set();
+let _xUsers   = new Set();
+let _poll     = null;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Auth
-// ─────────────────────────────────────────────────────────────────────────────
-function authHeaders() {
-  return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${_token}` };
-}
-
+// ── Auth ──────────────────────────────────────────────────────────────────
 async function doLogin() {
-  const u = document.getElementById('login-user').value.trim();
-  const p = document.getElementById('login-pass').value;
-  document.getElementById('login-error').textContent = '';
+  const u = document.getElementById('lu').value.trim();
+  const p = document.getElementById('lp').value;
+  document.getElementById('lerr').textContent = '';
   try {
-    const r = await fetch('/api/admin/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({username:u, password:p}) });
-    if (!r.ok) { document.getElementById('login-error').textContent = 'Invalid credentials'; return; }
+    const r = await fetch('/api/admin/login', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({username: u, password: p})
+    });
     const d = await r.json();
-    _token = d.token;
-    localStorage.setItem('admin_token', _token);
-    showApp();
-  } catch(e) { document.getElementById('login-error').textContent = 'Connection failed'; }
+    if (!r.ok) throw new Error(d.detail || 'Invalid credentials');
+    _tok = d.token;
+    localStorage.setItem('cap_tok', _tok);
+    boot();
+  } catch(e) {
+    document.getElementById('lerr').textContent = e.message;
+  }
 }
 
-async function doLogout() {
-  await fetch('/api/admin/logout', { method: 'POST', headers: authHeaders() }).catch(()=>{});
-  localStorage.removeItem('admin_token');
+function signout() {
+  fetch('/api/admin/logout', {method: 'POST', headers: {'X-Admin-Token': _tok}}).catch(() => {});
+  localStorage.removeItem('cap_tok');
   location.reload();
 }
 
-function showApp() {
-  document.getElementById('login-screen').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
-  load();
-  startJobsAutoRefresh();
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// API helper
-// ─────────────────────────────────────────────────────────────────────────────
+// ── API ───────────────────────────────────────────────────────────────────
 async function api(method, path, body) {
-  const opts = { method, headers: authHeaders() };
-  if (body !== undefined) opts.body = JSON.stringify(body);
-  const r = await fetch(path, opts);
-  if (r.status === 401) { doLogout(); return null; }
-  if (!r.ok) {
-    const t = await r.text().catch(()=>'');
-    throw new Error(t || r.statusText);
+  const opts = {method, headers: {'X-Admin-Token': _tok}};
+  if (body !== undefined) {
+    opts.headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(body);
   }
-  return r.json().catch(()=>({}));
+  const r = await fetch(path, opts);
+  const d = await r.json().catch(() => ({}));
+  if (r.status === 401) { localStorage.removeItem('cap_tok'); location.reload(); }
+  if (!r.ok) throw new Error(d.detail || 'HTTP ' + r.status);
+  return d;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Load all data
-// ─────────────────────────────────────────────────────────────────────────────
-async function load() {
-  try {
-    [_data, _openStats, _heartbeat, _activity, _userHealth, _staleJobs, _slotStats, _dowHeatmap, _unitEcon] = await Promise.all([
-      api('GET', '/api/admin/data').then(r => r || {}),
-      api('GET', '/api/admin/open-stats').catch(() => ({})),
-      api('GET', '/api/admin/heartbeat').catch(() => []),
-      api('GET', '/api/admin/activity').catch(() => []),
-      api('GET', '/api/admin/user-health').catch(() => []),
-      api('GET', '/api/admin/stale-jobs').catch(() => []),
-      api('GET', '/api/admin/slot-stats').catch(() => []),
-      api('GET', '/api/admin/dow-heatmap').catch(() => []),
-      api('GET', '/api/admin/unit-economics').catch(() => ({})),
-    ]);
-    document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
-    render();
-  } catch(e) { toast('Load failed: ' + e.message, 'error'); }
+// ── Toast ─────────────────────────────────────────────────────────────────
+function toast(msg, type) {
+  const el = document.createElement('div');
+  el.className = 'ti ' + (type === 'err' ? 'terr' : type === 'info' ? 'tinfo' : 'tok');
+  el.textContent = msg;
+  document.getElementById('toast').prepend(el);
+  setTimeout(() => el.remove(), 3500);
 }
 
-// Auto-refresh activity feed every 15 seconds
-setInterval(async () => {
-  try {
-    _activity = await api('GET', '/api/admin/activity').catch(() => _activity);
-    renderActivityFeed();
-  } catch(e) {}
-}, 15000);
+// ── Utils ─────────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 
-function render() {
-  renderDashboard();
+function fd(s) {
+  if (!s) return '—';
+  try {
+    const d = new Date(s.includes('T') && !s.endsWith('Z') ? s + 'Z' : s);
+    return d.toLocaleDateString('en-IN', {day:'2-digit',month:'short'}) + ' ' +
+           d.toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit',hour12:true});
+  } catch { return s; }
+}
+
+function pill(status) {
+  const m = {active:'pg',ready:'pg',done:'pg',sent:'pg',processing:'pa',pending:'pb',failed:'pr',cancelled:'pz',skipped:'pz',paused:'pz'};
+  return `<span class="pill ${m[status]||'pz'}">${esc(status||'—')}</span>`;
+}
+
+function prog(val, done) {
+  return `<div class="prog"><div class="progb${done?' done':''}" style="width:${val||0}%"></div></div>`;
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────
+function boot() {
+  document.getElementById('login').style.display = 'none';
+  document.getElementById('app').style.display   = 'flex';
+  const h = location.hash.slice(1);
+  if (h) {
+    const btn = document.querySelector(`[data-tab="${h}"]`);
+    if (btn) goTab(h, btn);
+  }
+  loadData();
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────
+function goTab(name, btn) {
+  _tab = name;
+  location.hash = name;
+  document.querySelectorAll('.tb').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
+  ['overview','users','courses','jobs','emails'].forEach(t =>
+    document.getElementById('tab-' + t).style.display = t === name ? '' : 'none'
+  );
+  if (name === 'emails') loadEmails();
+  if (name === 'jobs')   startPoll();
+  else stopPoll();
+}
+
+// ── Data ──────────────────────────────────────────────────────────────────
+async function loadData() {
+  setStatus('loading');
+  try {
+    _data = await api('GET', '/api/admin/data');
+    document.getElementById('ts').textContent = new Date().toLocaleTimeString('en-IN', {timeStyle:'short'});
+    setStatus('ok');
+    renderAll();
+  } catch(e) {
+    setStatus('err');
+    toast('Load failed: ' + e.message, 'err');
+  }
+}
+
+function setStatus(s) {
+  const dot = document.getElementById('sdot');
+  dot.className = 'sdot' + (s === 'ok' ? ' ok' : s === 'err' ? ' err' : '');
+}
+
+function renderAll() {
+  renderOverview();
   renderUsers();
   renderCourses();
-  renderHeartbeat();
-  renderActivityFeed();
-  renderStaleJobAlert();
+  renderJobs();
 }
 
-function switchTab(name) {
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
-  document.querySelector(`[data-tab="${name}"]`).classList.add('active');
-  // Lazy-load tab-specific data
-  if (name === 'emails') loadEmails('');
-  if (name === 'transcripts') loadTranscripts();
-  if (name === 'analytics') loadAnalytics();
-  if (name === 'system') loadSystem();
-  if (name === 'flags') loadFlags();
-  if (name === 'audit') loadAudit();
-  if (name === 'llm') loadLLM();
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Dashboard
-// ─────────────────────────────────────────────────────────────────────────────
-function renderDashboard() {
+// ── Overview ──────────────────────────────────────────────────────────────
+function renderOverview() {
+  if (!_data) return;
   const s = _data.stats || {};
-  const o = _openStats || {};
-  const ue = _unitEcon || {};
-  const healthCounts = (_userHealth || []).reduce((acc, u) => { acc[u.health] = (acc[u.health]||0)+1; return acc; }, {});
-  const cards = [
-    { label:'Users',          val: s.total_users        || 0, cls:'blue'   },
-    { label:'Active Courses', val: s.active_courses     || 0, cls:'green'  },
-    { label:'Processing',     val: s.processing_courses || 0, cls:'amber'  },
-    { label:'Emails Sent',    val: s.emails_sent        || 0, cls:'green'  },
-    { label:'Sent Today',     val: s.emails_today       || 0, cls:'blue'   },
-    { label:'Pending Emails', val: s.emails_pending     || 0, cls:'amber'  },
-    { label:'Opens Today',    val: o.opens_today        || 0, cls:'purple' },
-    { label:'Open Rate (7d)', val: (o.open_rate_7d      || 0) + '%', cls:'purple' },
-    { label:'Total Opens',    val: o.total_unique_opens || 0, cls:'purple' },
-    { label:'🟢 Active',      val: healthCounts.active  || 0, cls:'green'  },
-    { label:'🟡 At Risk',     val: healthCounts.at_risk || 0, cls:'amber'  },
-    { label:'🔴 Ghost',       val: healthCounts.ghost   || 0, cls:'red'    },
-    { label:'LLM Cost Est.',  val: '$' + (ue.est_llm_cost_usd || 0), cls:'' },
-    { label:'Cost/Email',     val: '$' + (ue.cost_per_email   || 0), cls:'' },
-    { label:'Jobs Pending',   val: s.jobs_pending       || 0, cls:(s.jobs_pending>0?'amber':'')  },
-    { label:'Jobs Running',   val: s.jobs_processing    || 0, cls:(s.jobs_processing>0?'green':'') },
-  ];
-  document.getElementById('dash-stats').innerHTML = cards.map(c =>
-    `<div class="stat-card ${c.cls}"><div class="stat-label">${c.label}</div><div class="stat-value">${c.val}</div></div>`
-  ).join('');
+  const jobs = (_data.jobs || []).slice(0, 6);
 
-  const courses = (_data.courses || []).slice(0, 10);
-  document.getElementById('dash-courses-wrap').innerHTML = courses.length ? `
-    <table><thead><tr><th>Course</th><th>User</th><th>Progress</th><th>Status</th><th>Created</th></tr></thead>
-    <tbody>${courses.map(c => `
-      <tr>
-        <td class="truncate" style="max-width:220px">${esc(c.playlist_title||'Untitled')}</td>
-        <td class="mono">${esc(c.email||'')}</td>
-        <td>${progressBar(c.videos_processed, c.total_videos)}</td>
-        <td>${statusPill(c.status)}</td>
-        <td style="color:var(--muted);font-size:11px">${fmtDate(c.created_at)}</td>
-      </tr>`).join('')}
-    </tbody></table>` : '<div class="empty">No courses yet</div>';
-}
-
-function renderHeartbeat() {
-  const el = document.getElementById('dash-heartbeat');
-  if (!el) return;
-  const data = _heartbeat || [];
-  if (!data.length) { el.innerHTML = '<div style="color:var(--muted);font-size:12px">No emails sent yet</div>'; return; }
-  const max = Math.max(...data.map(x => x.count), 1);
-  el.innerHTML = `<div style="display:flex;align-items:flex-end;gap:4px;height:64px">
-    ${data.map(x => `
-      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">
-        <div title="${x.count} emails on ${x.day}" style="width:100%;background:var(--accent);border-radius:3px 3px 0 0;height:${Math.round(x.count/max*56)+4}px;opacity:0.85;transition:height 0.3s"></div>
-        <div style="font-size:9px;color:var(--muted);white-space:nowrap">${x.day ? x.day.slice(5) : ''}</div>
-      </div>`).join('')}
-  </div>`;
-}
-
-const _ACTIVITY_ICONS = { enrolled:'🎓', email_sent:'✉️', email_opened:'👁', job_done:'✅', job_failed:'❌' };
-const _ACTIVITY_COLORS = { enrolled:'var(--blue)', email_sent:'var(--muted)', email_opened:'var(--purple)', job_done:'var(--accent)', job_failed:'var(--danger)' };
-
-function renderActivityFeed() {
-  const el = document.getElementById('activity-feed');
-  if (!el) return;
-  const events = _activity || [];
-  if (!events.length) { el.innerHTML = '<div class="empty" style="padding:20px">No recent activity</div>'; return; }
-  el.innerHTML = events.map(e => `
-    <div style="display:flex;align-items:flex-start;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border)">
-      <span style="font-size:13px;flex-shrink:0;margin-top:1px">${_ACTIVITY_ICONS[e.type] || '•'}</span>
-      <div style="min-width:0;flex:1">
-        <div style="font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-          <span style="color:${_ACTIVITY_COLORS[e.type]||'var(--muted)'};font-weight:600">${e.type.replace('_',' ')}</span>
-          ${e.email ? `· <span style="font-family:monospace">${esc(e.email)}</span>` : ''}
-        </div>
-        <div style="font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(e.title||'')}">${esc(e.title||'')}</div>
-        <div style="font-size:10px;color:var(--muted)">${e.ts ? timeAgo(e.ts) : ''}</div>
-      </div>
-    </div>`).join('');
-}
-
-function renderStaleJobAlert() {
-  const el = document.getElementById('stale-job-alert');
-  if (!el) return;
-  const stale = _staleJobs || [];
-  if (!stale.length) { el.style.display = 'none'; return; }
-  el.style.display = 'block';
-
-  const jobLines = stale.map(j => `
-    <div style="display:flex;align-items:center;gap:10px;margin-top:8px;padding:8px 10px;background:rgba(220,38,38,.06);border-radius:7px;flex-wrap:wrap;">
-      <code style="font-size:11px;color:var(--danger);font-family:monospace">${j.id.slice(0,8)}</code>
-      <span style="flex:1;font-size:11px;color:#666">${j.message ? esc(j.message) : 'Stuck in processing'}</span>
-      <button class="btn btn-amber" style="font-size:11px" onclick="requeueStuckJob('${j.id}')">↻ Requeue</button>
-      <button class="btn btn-danger" style="font-size:11px" onclick="confirmAction('Cancel this job?','⏹','adminCancelJob','${j.id}')">Cancel</button>
-    </div>`).join('');
-
-  el.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-      <div>
-        <strong>⚠️ ${stale.length} job${stale.length > 1 ? 's' : ''} stuck in processing</strong>
-        <span style="font-size:11px;color:#666;margin-left:8px">Worker started but never finished — emails for remaining videos won't send until fixed</span>
-      </div>
-      <button class="btn btn-blue" onclick="switchTab('jobs')" style="font-size:11px;white-space:nowrap">Go to Jobs →</button>
-    </div>
-    ${jobLines}`;
-}
-
-async function requeueStuckJob(id) {
-  try {
-    await api('POST', `/api/admin/jobs/${id}/requeue`);
-    toast('Job requeued — worker will retry', 'success');
-    load();
-  } catch(e) { toast('Error: ' + e.message, 'error'); }
-}
-
-function timeAgo(ts) {
-  if (!ts) return '';
-  const diff = Math.floor((Date.now() - new Date(ts + (ts.endsWith('Z')?'':'Z')).getTime()) / 1000);
-  if (diff < 60) return `${diff}s ago`;
-  if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
-  return `${Math.floor(diff/86400)}d ago`;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Global search
-// ─────────────────────────────────────────────────────────────────────────────
-let _searchTimer = null;
-function globalSearch(q) {
-  clearTimeout(_searchTimer);
-  if (!q || q.length < 2) { hideSearchDrop(); return; }
-  _searchTimer = setTimeout(async () => {
-    try {
-      const d = await api('GET', `/api/admin/search?q=${encodeURIComponent(q)}`);
-      renderSearchDrop(d, q);
-    } catch(e) {}
-  }, 220);
-}
-
-function renderSearchDrop(d, q) {
-  const drop = document.getElementById('search-drop');
-  const items = [
-    ...(d.users||[]).map(u => `<div class="search-item" onclick="switchTab('users');hideSearchDrop()">👤 <b>${esc(u.email)}</b> <span style="color:var(--muted);font-size:11px">user · ${fmtDate(u.created_at)}</span></div>`),
-    ...(d.courses||[]).map(c => `<div class="search-item" onclick="switchTab('courses');hideSearchDrop()">📚 <b>${esc(c.playlist_title||'Untitled')}</b> <span style="color:var(--muted);font-size:11px">${esc(c.email)} · ${c.status}</span></div>`),
-    ...(d.emails||[]).map(e => `<div class="search-item" onclick="switchTab('emails');hideSearchDrop()">✉️ <b>${esc(e.subject||'')}</b> <span style="color:var(--muted);font-size:11px">${esc(e.email)} · ${e.slot} · ${e.status}</span></div>`),
-  ];
-  if (!items.length) {
-    drop.innerHTML = `<div style="padding:12px 16px;color:var(--muted);font-size:12px">No results for "${esc(q)}"</div>`;
-  } else {
-    drop.innerHTML = items.join('');
-  }
-  drop.style.display = 'block';
-}
-
-function showSearchDrop() {
-  const q = document.getElementById('global-search').value;
-  if (q && q.length >= 2) document.getElementById('search-drop').style.display = 'block';
-}
-function hideSearchDrop() { document.getElementById('search-drop').style.display = 'none'; }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Users
-// ─────────────────────────────────────────────────────────────────────────────
-const _HEALTH_PILL = {
-  active:  '<span class="pill pill-green">🟢 Active</span>',
-  at_risk: '<span class="pill pill-amber">🟡 At Risk</span>',
-  ghost:   '<span class="pill pill-red">🔴 Ghost</span>',
-  new:     '<span class="pill pill-gray">🆕 New</span>',
-};
-
-function filterUserHealth(filter) {
-  _activeHealthFilter = filter;
-  renderUsers();
-}
-
-function renderUsers() {
-  const healthMap = {};
-  (_userHealth || []).forEach(h => { healthMap[h.id] = h; });
-
-  let users = _data.users || [];
-  if (_activeHealthFilter) {
-    users = users.filter(u => (healthMap[u.id]||{}).health === _activeHealthFilter);
-  }
-  document.getElementById('users-badge').textContent = users.length;
-  document.getElementById('users-table-wrap').innerHTML = users.length ? `
-    <table><thead><tr><th>Email</th><th>Health</th><th>Opens</th><th>Freq</th><th>Tone</th><th>TZ</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
-    <tbody>${users.map(u => {
-      const h = healthMap[u.id] || {};
-      return `
-      <tr data-health="${h.health||''}">
-        <td class="mono">${esc(u.email)}</td>
-        <td>${_HEALTH_PILL[h.health||'new'] || ''}</td>
-        <td style="font-size:11px;color:var(--muted)">${h.total_opens||0} / ${h.total_sent||0} <span style="color:var(--purple)">(${h.open_rate||0}%)</span></td>
-        <td>${esc(u.frequency||'1x')}</td>
-        <td>${esc(u.tone||'Casual')}</td>
-        <td style="font-size:11px;color:var(--muted)">${esc(u.timezone||'UTC')}</td>
-        <td>${u.paused ? '<span class="pill pill-amber">Paused</span>' : '<span class="pill pill-green">Active</span>'}</td>
-        <td style="color:var(--muted);font-size:11px">${fmtDate(u.created_at)}</td>
-        <td><div class="actions">
-          <button class="btn btn-blue" onclick="openUserCourses('${u.id}','${esc(u.email)}')">Courses</button>
-          <button class="btn btn-blue" onclick="openEditUser('${u.id}','${esc(u.email)}','${esc(u.frequency)}','${esc(u.tone)}','${esc(u.depth||'')}','${esc(u.timezone)}')">Edit</button>
-          ${u.paused
-            ? `<button class="btn btn-green" onclick="resumeUser('${u.id}')">Resume</button>`
-            : `<button class="btn btn-amber" onclick="pauseUser('${u.id}')">Pause</button>`
-          }
-          <button class="btn btn-danger" onclick="confirmAction('Delete user ${esc(u.email)}? All their data will be permanently removed.','🗑️','deleteUser','${u.id}')">Delete</button>
-        </div></td>
-      </tr>`;
-    }).join('')}
-    </tbody></table>` : `<div class="empty">No users${_activeHealthFilter ? ` with health "${_activeHealthFilter}"` : ''}</div>`;
-}
-
-function openUserCourses(userId, email) {
-  const courses = (_data.courses||[]).filter(c => c.user_id === userId);
-  _currentCourse = null;
-  switchTab('courses');
-  // Filter the courses table
-  setTimeout(() => {
-    document.querySelector('#tab-courses .search-input').value = email;
-    filterTable('courses-table-wrap', email);
-  }, 50);
-}
-
-function openEditUser(id, email, freq, tone, depth, tz) {
-  _editUserId = id;
-  document.getElementById('edit-user-sub').textContent = email;
-  document.getElementById('eu-frequency').value = freq;
-  document.getElementById('eu-tone').value = tone;
-  document.getElementById('eu-depth').value = depth;
-  document.getElementById('eu-timezone').value = tz;
-  document.getElementById('edit-user-modal').style.display = 'flex';
-}
-
-async function saveUserEdit() {
-  try {
-    await api('PUT', `/api/admin/users/${_editUserId}`, {
-      frequency: document.getElementById('eu-frequency').value,
-      tone:      document.getElementById('eu-tone').value,
-      depth:     document.getElementById('eu-depth').value,
-      timezone:  document.getElementById('eu-timezone').value,
-    });
-    closeModal('edit-user-modal');
-    toast('User updated', 'success');
-    load();
-  } catch(e) { toast('Error: ' + e.message, 'error'); }
-}
-
-async function pauseUser(id) {
-  await api('POST', `/api/admin/users/${id}/pause`);
-  toast('User paused — emails will stop', 'success');
-  load();
-}
-
-async function resumeUser(id) {
-  await api('POST', `/api/admin/users/${id}/resume`);
-  toast('User resumed', 'success');
-  load();
-}
-
-async function deleteUser(id) {
-  try {
-    await api('DELETE', `/api/admin/users/${id}`);
-    toast('User deleted', 'success');
-    load();
-  } catch(e) { toast('Error: ' + e.message, 'error'); }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Courses
-// ─────────────────────────────────────────────────────────────────────────────
-function renderCourses() {
-  const courses = _data.courses || [];
-  document.getElementById('courses-badge').textContent = courses.length;
-  document.getElementById('courses-table-wrap').innerHTML = courses.length ? `
-    <table><thead><tr><th>Course</th><th>User</th><th>Progress</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
-    <tbody>${courses.map(c => `
-      <tr data-status="${c.status}">
-        <td class="truncate" style="max-width:200px">${esc(c.playlist_title||'Untitled')}</td>
-        <td class="mono">${esc(c.email||'')}</td>
-        <td>${progressBar(c.videos_processed, c.total_videos)}</td>
-        <td>${c.paused ? '<span class="pill pill-amber">Paused</span>' : statusPill(c.status)}</td>
-        <td style="color:var(--muted);font-size:11px">${fmtDate(c.created_at)}</td>
-        <td><div class="actions">
-          <button class="btn btn-blue" onclick="openCourseVideos('${c.id}','${esc(c.playlist_title||'')}','${esc(c.email||'')}','${c.status}')">Videos</button>
-          <button class="btn btn-green" onclick="adminReprocess('${c.id}')">Reprocess</button>
-          ${c.paused
-            ? `<button class="btn btn-green" onclick="adminResumeCourse('${c.id}')">Resume</button>`
-            : `<button class="btn btn-amber" onclick="adminPauseCourse('${c.id}')">Pause</button>`
-          }
-          <button class="btn btn-amber" onclick="confirmAction('Cancel course and stop all pending emails?','⏹','adminCancelCourse','${c.id}')">Cancel</button>
-          <button class="btn btn-danger" onclick="confirmAction('Permanently delete this course and all its emails?','🗑️','adminDeleteCourse','${c.id}')">Delete</button>
-        </div></td>
-      </tr>`).join('')}
-    </tbody></table>` : '<div class="empty">No courses</div>';
-}
-
-function filterCourseStatus(status) {
-  const rows = document.querySelectorAll('#courses-table-wrap tr[data-status]');
-  rows.forEach(r => r.style.display = (!status || r.dataset.status === status) ? '' : 'none');
-}
-
-function showCoursesList() {
-  document.getElementById('courses-list-view').style.display = '';
-  document.getElementById('courses-video-view').style.display = 'none';
-  _currentCourse = null;
-}
-
-async function openCourseVideos(courseId, title, email, status) {
-  _currentCourse = { id: courseId, title, email, status };
-  document.getElementById('courses-list-view').style.display = 'none';
-  document.getElementById('courses-video-view').style.display = '';
-  document.getElementById('video-view-title').textContent = title || 'Videos';
-  document.getElementById('videos-table-wrap').innerHTML = '<div class="loading">Loading…</div>';
-  try {
-    const d = await api('GET', `/api/admin/courses/${courseId}/videos`);
-    const videos = d.videos || [];
-    document.getElementById('videos-table-wrap').innerHTML = videos.length ? `
-      <table><thead><tr><th>#</th><th>Title</th><th>Status</th><th>Emails</th><th>Transcript</th><th>Error</th><th>Actions</th></tr></thead>
-      <tbody>${videos.map((v,i) => `
-        <tr>
-          <td style="color:var(--muted);font-size:11px">${v.position+1}</td>
-          <td class="truncate" style="max-width:220px">
-            <a href="https://youtube.com/watch?v=${esc(v.youtube_id)}" target="_blank" style="color:var(--blue);text-decoration:none">${esc(v.title||'Untitled')}</a>
-          </td>
-          <td>${videoStatusPill(v.status)}</td>
-          <td style="color:var(--muted);text-align:center">${v.email_count||0}</td>
-          <td style="text-align:center">${v.has_transcript ? '<span style="color:var(--accent)">✓</span>' : '<span style="color:#ddd">—</span>'}</td>
-          <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--danger);font-size:11px">${esc(v.error_msg||'')}</td>
-          <td><div class="actions">
-            ${v.email_count > 0 ? `<button class="btn btn-blue" onclick="previewVideoEmails('${v.id}','${esc(v.title||'')}')">Emails</button>` : ''}
-            ${v.has_transcript ? `<button class="btn btn-purple" onclick="viewTranscript('${v.id}','${esc(v.title||'')}')">Transcript</button>` : ''}
-            ${['failed','skipped'].includes(v.status) ? `<button class="btn btn-amber" onclick="retryVideo('${v.id}','${esc(v.title||'')}')">↻ Retry</button>` : ''}
-          </div></td>
-        </tr>`).join('')}
-      </tbody></table>` : '<div class="empty">No videos found</div>';
-  } catch(e) { document.getElementById('videos-table-wrap').innerHTML = `<div class="empty">Error: ${esc(e.message)}</div>`; }
-}
-
-async function retryVideo(videoId, title) {
-  try {
-    const d = await api('POST', `/api/admin/videos/${videoId}/retry`);
-    toast(`Retrying "${title}" — job ${d.job_id.slice(0,8)}…`, 'success');
-    if (_currentCourse) openCourseVideos(_currentCourse.id, _currentCourse.title, _currentCourse.email, _currentCourse.status);
-  } catch(e) { toast('Error: ' + e.message, 'error'); }
-}
-
-function reprocessCurrentCourse() {
-  if (!_currentCourse) return;
-  confirmAction('Reprocess all failed/skipped videos in this course?', '↻', 'adminReprocess', _currentCourse.id);
-}
-
-function cancelCurrentCourse() {
-  if (!_currentCourse) return;
-  confirmAction('Cancel this course and stop all pending emails?', '⏹', 'adminCancelCourse', _currentCourse.id);
-}
-
-async function adminReprocess(id) {
-  try {
-    const d = await api('POST', `/api/admin/courses/${id}/reprocess`);
-    toast('Reprocess job queued: ' + d.job_id.slice(0,8), 'success');
-    load();
-  } catch(e) { toast('Error: ' + e.message, 'error'); }
-}
-
-async function adminCancelCourse(id) {
-  try {
-    await api('POST', `/api/admin/courses/${id}/cancel`);
-    toast('Course cancelled', 'success');
-    load(); showCoursesList();
-  } catch(e) { toast('Error: ' + e.message, 'error'); }
-}
-
-async function adminDeleteCourse(id) {
-  try {
-    await api('DELETE', `/api/admin/courses/${id}`);
-    toast('Course deleted', 'success');
-    load(); showCoursesList();
-  } catch(e) { toast('Error: ' + e.message, 'error'); }
-}
-
-async function adminPauseCourse(id) {
-  await api('POST', `/api/admin/courses/${id}/pause`);
-  toast('Course paused — emails will stop', 'success');
-  load();
-}
-
-async function adminResumeCourse(id) {
-  await api('POST', `/api/admin/courses/${id}/resume`);
-  toast('Course resumed', 'success');
-  load();
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Emails
-// ─────────────────────────────────────────────────────────────────────────────
-async function loadEmails(statusFilter) {
-  document.getElementById('emails-table-wrap').innerHTML = '<div class="loading">Loading…</div>';
-  try {
-    const qs = statusFilter ? `?status=${statusFilter}` : '';
-    const d = await api('GET', '/api/admin/emails' + qs);
-    _emails = d.emails || [];
-    document.getElementById('emails-badge').textContent = _emails.length;
-    renderEmailsTable();
-  } catch(e) { document.getElementById('emails-table-wrap').innerHTML = `<div class="empty">Error: ${esc(e.message)}</div>`; }
-}
-
-function renderEmailsTable() {
-  document.getElementById('emails-table-wrap').innerHTML = _emails.length ? `
-    <table><thead><tr><th>Subject</th><th>User</th><th>Course</th><th>Slot</th><th>Status</th><th>Scheduled</th><th>Actions</th></tr></thead>
-    <tbody>${_emails.map((e,i) => `
-      <tr>
-        <td class="truncate" style="max-width:200px">${esc(e.subject||'(no subject)')}</td>
-        <td class="mono">${esc(e.user_email||'')}</td>
-        <td class="truncate" style="max-width:140px;color:var(--muted);font-size:11px">${esc(e.playlist_title||'')}</td>
-        <td><span class="pill pill-blue">${esc(e.slot||'')}</span></td>
-        <td>${emailStatusPill(e.status)}</td>
-        <td style="color:var(--muted);font-size:11px;white-space:nowrap">${fmtDate(e.scheduled_at)}</td>
-        <td><div class="actions">
-          <button class="btn btn-blue" onclick="previewEmailByIdx(${i})">View</button>
-          <button class="btn btn-blue" onclick="openEditEmail(${i})">Edit</button>
-          <button class="btn btn-purple" onclick="openReschedule(${i})">Reschedule</button>
-          ${e.status !== 'sent' ? `<button class="btn btn-green" onclick="adminSendNow('${e.id}',${i})">Send Now</button>` : ''}
-          ${e.status === 'sent' ? `<button class="btn btn-amber" onclick="adminResendEmail('${e.id}')">Resend</button>` : ''}
-          ${e.status === 'pending' ? `<button class="btn btn-danger" onclick="confirmAction('Cancel this email?','✕','adminCancelEmail','${e.id}')">Cancel</button>` : ''}
-        </div></td>
-      </tr>`).join('')}
-    </tbody></table>` : '<div class="empty">No emails</div>';
-}
-
-function openEditEmail(idx) {
-  const e = _emails[idx];
-  _editEmailId = e.id;
-  document.getElementById('edit-email-sub').textContent = e.user_email + ' · ' + (e.slot||'');
-  document.getElementById('edit-email-subject').value = e.subject || '';
-  document.getElementById('edit-email-body').value = e.html_body || '';
-  document.getElementById('edit-email-modal').style.display = 'flex';
-}
-
-async function saveEmailEdit() {
-  try {
-    await api('PUT', `/api/admin/emails/${_editEmailId}/content`, {
-      subject: document.getElementById('edit-email-subject').value,
-      html_body: document.getElementById('edit-email-body').value,
-    });
-    closeModal('edit-email-modal');
-    toast('Email updated', 'success');
-    loadEmails('');
-  } catch(e) { toast('Error: ' + e.message, 'error'); }
-}
-
-function openReschedule(idx) {
-  const e = _emails[idx];
-  _rescheduleEmailId = e.id;
-  document.getElementById('reschedule-sub').textContent = e.user_email + ' · ' + (e.subject||'');
-  // Set current value
-  const dt = e.scheduled_at ? e.scheduled_at.slice(0,16) : '';
-  document.getElementById('reschedule-dt').value = dt;
-  document.getElementById('reschedule-modal').style.display = 'flex';
-}
-
-async function saveReschedule() {
-  const dt = document.getElementById('reschedule-dt').value;
-  if (!dt) { toast('Pick a date/time', 'error'); return; }
-  try {
-    await api('PUT', `/api/admin/emails/${_rescheduleEmailId}/schedule`, { scheduled_at: dt + ':00' });
-    closeModal('reschedule-modal');
-    toast('Email rescheduled', 'success');
-    loadEmails('');
-  } catch(e) { toast('Error: ' + e.message, 'error'); }
-}
-
-async function adminSendNow(id, idx) {
-  try {
-    await api('POST', `/api/admin/emails/${id}/send-now`);
-    toast('Email sent!', 'success');
-    loadEmails('');
-  } catch(e) { toast('Error: ' + e.message, 'error'); }
-}
-
-async function adminResendEmail(id) {
-  try {
-    await api('POST', `/api/admin/emails/${id}/resend`);
-    toast('Email resent', 'success');
-    loadEmails('');
-  } catch(e) { toast('Error: ' + e.message, 'error'); }
-}
-
-async function adminCancelEmail(id) {
-  try {
-    await api('POST', `/api/admin/emails/${id}/cancel`);
-    toast('Email cancelled', 'success');
-    loadEmails('');
-  } catch(e) { toast('Error: ' + e.message, 'error'); }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Transcripts
-// ─────────────────────────────────────────────────────────────────────────────
-async function loadTranscripts() {
-  document.getElementById('transcripts-table-wrap').innerHTML = '<div class="loading">Loading…</div>';
-  try {
-    const d = await api('GET', '/api/admin/transcripts');
-    _transcripts = d.transcripts || [];
-    document.getElementById('transcripts-badge').textContent = _transcripts.length;
-    renderTranscriptsTable();
-  } catch(e) { document.getElementById('transcripts-table-wrap').innerHTML = `<div class="empty">Error: ${esc(e.message)}</div>`; }
-}
-
-function renderTranscriptsTable() {
-  document.getElementById('transcripts-table-wrap').innerHTML = _transcripts.length ? `
-    <table><thead><tr><th>Video</th><th>Course</th><th>User</th><th>Status</th><th>Chars</th><th>Actions</th></tr></thead>
-    <tbody>${_transcripts.map(t => `
-      <tr>
-        <td class="truncate" style="max-width:200px">
-          <a href="https://youtube.com/watch?v=${esc(t.youtube_id)}" target="_blank" style="color:var(--blue);text-decoration:none">${esc(t.title||'Untitled')}</a>
-        </td>
-        <td class="truncate" style="max-width:160px;color:var(--muted);font-size:11px">${esc(t.playlist_title||'')}</td>
-        <td class="mono">${esc(t.email||'')}</td>
-        <td>${videoStatusPill(t.status)}</td>
-        <td style="color:var(--muted);font-size:11px">${(t.transcript_len||0).toLocaleString()}</td>
-        <td><div class="actions">
-          <button class="btn btn-blue" onclick="viewTranscript('${t.id}','${esc(t.title||'')}')">View</button>
-          <button class="btn btn-purple" onclick="viewTranscriptEdit('${t.id}','${esc(t.title||'')}')">✏️ Edit</button>
-        </div></td>
-      </tr>`).join('')}
-    </tbody></table>` : '<div class="empty">No transcripts stored yet</div>';
-}
-
-async function viewTranscript(videoId, title, startEdit=false) {
-  _trVideoId = videoId;
-  _trEditMode = false;
-  document.getElementById('tr-modal-title').textContent = title || 'Transcript';
-  document.getElementById('tr-modal-meta').textContent = 'Loading…';
-  document.getElementById('tr-view').textContent = '';
-  document.getElementById('tr-edit').value = '';
-  document.getElementById('tr-view').style.display = 'block';
-  document.getElementById('tr-edit').style.display = 'none';
-  document.getElementById('tr-footer').style.display = 'none';
-  document.getElementById('tr-edit-btn').textContent = '✏️ Edit';
-  document.getElementById('transcript-modal').style.display = 'flex';
-  try {
-    const d = await api('GET', `/api/admin/videos/${videoId}/transcript`);
-    const text = d.transcript || '';
-    document.getElementById('tr-modal-meta').textContent = `${text.length.toLocaleString()} chars · ${text.split(' ').length.toLocaleString()} words`;
-    document.getElementById('tr-view').textContent = text;
-    document.getElementById('tr-edit').value = text;
-    if (startEdit) toggleTranscriptEdit();
-  } catch(e) { document.getElementById('tr-view').textContent = 'Error: ' + e.message; }
-}
-
-function viewTranscriptEdit(videoId, title) { viewTranscript(videoId, title, true); }
-
-function toggleTranscriptEdit() {
-  _trEditMode = !_trEditMode;
-  document.getElementById('tr-view').style.display = _trEditMode ? 'none' : 'block';
-  document.getElementById('tr-edit').style.display = _trEditMode ? 'block' : 'none';
-  document.getElementById('tr-footer').style.display = _trEditMode ? 'flex' : 'none';
-  document.getElementById('tr-edit-btn').textContent = _trEditMode ? '👁 View' : '✏️ Edit';
-}
-
-async function saveTranscript() {
-  const text = document.getElementById('tr-edit').value;
-  try {
-    await api('PUT', `/api/admin/videos/${_trVideoId}/transcript`, { text });
-    toast('Transcript saved', 'success');
-    document.getElementById('tr-view').textContent = text;
-    document.getElementById('tr-modal-meta').textContent = `${text.length.toLocaleString()} chars · ${text.split(' ').length.toLocaleString()} words`;
-    toggleTranscriptEdit();
-  } catch(e) { toast('Error: ' + e.message, 'error'); }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Analytics
-// ─────────────────────────────────────────────────────────────────────────────
-async function loadAnalytics() {
-  document.getElementById('analytics-body').innerHTML = '<div class="loading">Loading…</div>';
-  try {
-    const d = await api('GET', '/api/admin/analytics');
-    renderAnalytics(d);
-  } catch(e) { document.getElementById('analytics-body').innerHTML = `<div class="empty">Error: ${esc(e.message)}</div>`; }
-}
-
-function renderAnalytics(d) {
-  const f = d.funnel || {};
-  const convPct = f.users ? Math.round(f.active_courses / f.users * 100) : 0;
-  const sentPct = f.emails_generated ? Math.round(f.emails_sent / f.emails_generated * 100) : 0;
-
-  // Video statuses
-  const vs = d.video_statuses || {};
-  const vsTotal = Object.values(vs).reduce((a,b)=>a+b,0) || 1;
-  const vsOrder = ['ready','pending','processing','failed','skipped'];
-  const vsColors = {ready:'var(--accent)',pending:'var(--blue)',processing:'var(--warn)',failed:'var(--danger)',skipped:'#bbb'};
-
-  // Daily sent chart
-  const daily = d.daily_sent || [];
-  const maxN = Math.max(...daily.map(x=>x.n), 1);
-
-  // Slot breakdown
-  const slots = d.slot_breakdown || [];
-  const maxSlot = Math.max(...slots.map(x=>x.n), 1);
-
-  document.getElementById('analytics-body').innerHTML = `
-    <!-- Funnel -->
-    <div style="font-size:13px;font-weight:600;margin-bottom:10px">Enrollment Funnel</div>
-    <div class="funnel-row" style="margin-bottom:24px">
-      <div class="funnel-step"><div class="funnel-num" style="color:var(--blue)">${f.users||0}</div><div class="funnel-label">Users</div></div>
-      <div class="funnel-step"><div class="funnel-num" style="color:var(--blue)">${f.courses||0}</div><div class="funnel-label">Courses</div></div>
-      <div class="funnel-step"><div class="funnel-num" style="color:var(--accent)">${f.active_courses||0}</div><div class="funnel-label">Active</div><div class="funnel-pct">${convPct}% conv</div></div>
-      <div class="funnel-step"><div class="funnel-num" style="color:var(--muted)">${f.emails_generated||0}</div><div class="funnel-label">Emails Gen</div></div>
-      <div class="funnel-step"><div class="funnel-num" style="color:var(--accent)">${f.emails_sent||0}</div><div class="funnel-label">Sent</div><div class="funnel-pct">${sentPct}% sent</div></div>
+  document.getElementById('tab-overview').innerHTML = `
+    <div class="stats">
+      <div class="sc"><div class="sv">${s.total_users||0}</div><div class="sl">Users</div></div>
+      <div class="sc"><div class="sv">${s.active_courses||0}</div><div class="sl">Active Courses</div></div>
+      <div class="sc"><div class="sv">${s.processing_courses||0}</div><div class="sl">Processing</div></div>
+      <div class="sc"><div class="sv">${s.emails_sent||0}</div><div class="sl">Emails Sent</div></div>
+      <div class="sc"><div class="sv">${s.emails_pending||0}</div><div class="sl">Pending</div></div>
+      <div class="sc"><div class="sv">${s.emails_today||0}</div><div class="sl">Sent Today</div></div>
     </div>
 
-    <div class="two-col">
-      <!-- Video status breakdown -->
-      <div>
-        <div style="font-size:13px;font-weight:600;margin-bottom:10px">Video Status</div>
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px">
-          ${vsOrder.map(s => vs[s] !== undefined ? `
-            <div class="chart-bar-row">
-              <div class="chart-bar-label">${s}</div>
-              <div class="chart-bar-bg"><div class="chart-bar-fill" style="width:${Math.round(vs[s]/vsTotal*100)}%;background:${vsColors[s]||'var(--accent)'}"></div></div>
-              <div class="chart-bar-val">${vs[s]}</div>
-            </div>` : '').join('')}
+    <div class="acrow">
+      <div class="ac">
+        <div class="ac-info">
+          <label>Run Scheduler</label>
+          <p>Send due emails + generate upcoming</p>
         </div>
+        <button class="btn bg" id="btn-cron" onclick="runCron()">▶ Run</button>
       </div>
-
-      <!-- Slot breakdown -->
-      <div>
-        <div style="font-size:13px;font-weight:600;margin-bottom:10px">Email Slots Sent</div>
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px">
-          ${slots.length ? slots.map(s => `
-            <div class="chart-bar-row">
-              <div class="chart-bar-label">${s.slot}</div>
-              <div class="chart-bar-bg"><div class="chart-bar-fill" style="width:${Math.round(s.n/maxSlot*100)}%"></div></div>
-              <div class="chart-bar-val">${s.n}</div>
-            </div>`).join('') : '<div style="color:var(--muted);font-size:12px">No sent emails yet</div>'}
+      <div class="ac">
+        <div class="ac-info">
+          <label>Advance Processing</label>
+          <p>Queue next video for each active course</p>
         </div>
+        <button class="btn ba" id="btn-adv" onclick="runAdvance()">▶ Advance</button>
+      </div>
+      <div class="ac">
+        <div class="ac-info">
+          <label>Download DB</label>
+          <p>Snapshot capsule.db for backup</p>
+        </div>
+        <a href="/api/admin/db/download?token=${_tok}" class="btn bw" style="text-decoration:none;display:inline-flex;align-items:center">↓ Download</a>
       </div>
     </div>
 
-    <!-- Daily sent chart -->
-    <div style="font-size:13px;font-weight:600;margin:20px 0 10px">Emails Sent — Last 14 Days</div>
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:24px">
-      ${daily.length ? daily.map(x => `
-        <div class="chart-bar-row">
-          <div class="chart-bar-label" style="font-size:10px">${x.day.slice(5)}</div>
-          <div class="chart-bar-bg"><div class="chart-bar-fill" style="width:${Math.round(x.n/maxN*100)}%"></div></div>
-          <div class="chart-bar-val">${x.n}</div>
-        </div>`).join('') : '<div style="color:var(--muted);font-size:12px">No sent emails in last 14 days</div>'}
-    </div>
-
-    <!-- Paused counts -->
-    ${(d.paused_users > 0 || d.paused_courses > 0) ? `
-    <div style="background:var(--warn-light);border:1px solid var(--warn);border-radius:10px;padding:12px 16px;margin-bottom:20px;font-size:12px;color:var(--warn)">
-      ⚠️ ${d.paused_users} paused user(s) · ${d.paused_courses} paused course(s) — emails will not be sent.
-    </div>` : ''}
-
-    <!-- Error log -->
-    <div style="font-size:13px;font-weight:600;margin-bottom:10px">Error Log — Failed/Skipped Videos</div>
-    ${d.errors && d.errors.length ? `
-    <div class="table-wrap">
-      <table><thead><tr><th>Video</th><th>Course</th><th>User</th><th>Error</th><th>Action</th></tr></thead>
-      <tbody>${d.errors.map(e => `
-        <tr>
-          <td class="truncate" style="max-width:160px">
-            <a href="https://youtube.com/watch?v=${esc(e.youtube_id)}" target="_blank" style="color:var(--blue);text-decoration:none">${esc(e.title||'')}</a>
-          </td>
-          <td class="truncate" style="max-width:120px;color:var(--muted);font-size:11px">${esc(e.playlist_title||'')}</td>
-          <td class="mono">${esc(e.email||'')}</td>
-          <td style="color:var(--danger);font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.error_msg||'')}</td>
-          <td><button class="btn btn-amber" onclick="retryVideo('${e.id}','${esc(e.title||'')}')">↻ Retry</button></td>
-        </tr>`).join('')}
-      </tbody></table>
-    </div>` : '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;color:var(--muted);font-size:12px">No errors — all good ✓</div>'}
-
-    <!-- Slot open-rate performance -->
-    <div style="font-size:13px;font-weight:600;margin:24px 0 10px">Email Slot Performance</div>
-    <div class="table-wrap" style="margin-bottom:24px">
-      <table><thead><tr><th>Slot</th><th>Sent</th><th>Opened</th><th>Open Rate</th><th>Performance</th></tr></thead>
-      <tbody id="slot-perf-body"></tbody></table>
-    </div>
-
-    <!-- Day-of-week heatmap -->
-    <div style="font-size:13px;font-weight:600;margin-bottom:10px">Opens by Day of Week</div>
-    <div id="dow-chart" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:24px"></div>
-
-    <!-- Unit economics -->
-    <div style="font-size:13px;font-weight:600;margin-bottom:10px">Unit Economics (Estimated)</div>
-    <div id="unit-econ-grid" style="margin-bottom:24px"></div>
-  `;
-
-  // Slot perf table
-  const slotBody = document.getElementById('slot-perf-body');
-  if (slotBody) {
-    const slots = _slotStats || [];
-    const maxRate = Math.max(...slots.map(s => s.open_rate), 1);
-    slotBody.innerHTML = slots.length ? slots.map(s => `
-      <tr>
-        <td style="font-weight:600">${esc(s.slot)}</td>
-        <td>${s.sent}</td>
-        <td>${s.opened}</td>
-        <td style="color:var(--purple);font-weight:600">${s.open_rate}%</td>
-        <td style="width:180px">
-          <div class="mini-bar-wrap">
-            <div class="mini-bar"><div class="mini-bar-fill" style="width:${Math.round(s.open_rate/maxRate*100)}%;background:var(--purple)"></div></div>
-          </div>
-        </td>
-      </tr>`).join('') : '<tr><td colspan="5" style="color:var(--muted);padding:12px">No sent emails yet</td></tr>';
-  }
-
-  // DOW heatmap
-  const dowEl = document.getElementById('dow-chart');
-  if (dowEl) {
-    const dow = _dowHeatmap || [];
-    const maxOpens = Math.max(...dow.map(d => d.opens), 1);
-    dowEl.innerHTML = `<div style="display:flex;gap:8px;align-items:flex-end;height:80px">
-      ${dow.map(d => `
-        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
-          <div style="font-size:9px;color:var(--muted)">${d.opens||0}</div>
-          <div title="${d.day}: ${d.opens} opens" style="width:100%;background:var(--purple);border-radius:3px 3px 0 0;height:${Math.round((d.opens||0)/maxOpens*56)+4}px;opacity:0.75"></div>
-          <div style="font-size:10px;color:var(--muted)">${d.day}</div>
-        </div>`).join('')}
-    </div>`;
-  }
-
-  // Unit economics grid
-  const ueEl = document.getElementById('unit-econ-grid');
-  if (ueEl) {
-    const ue = _unitEcon || {};
-    ueEl.innerHTML = `<div class="stats-grid">
-      <div class="stat-card"><div class="stat-label">Videos Processed</div><div class="stat-value">${ue.videos_processed||0}</div></div>
-      <div class="stat-card"><div class="stat-label">Emails Sent</div><div class="stat-value">${ue.emails_sent||0}</div></div>
-      <div class="stat-card blue"><div class="stat-label">Active Users</div><div class="stat-value">${ue.active_users||0}</div></div>
-      <div class="stat-card amber"><div class="stat-label">Pending Emails</div><div class="stat-value">${ue.pending_emails||0}</div></div>
-      <div class="stat-card"><div class="stat-label">Est. LLM Cost</div><div class="stat-value">$${ue.est_llm_cost_usd||0}</div><div class="stat-sub">DeepSeek v3</div></div>
-      <div class="stat-card"><div class="stat-label">Cost per Email</div><div class="stat-value">$${ue.cost_per_email||0}</div></div>
-      <div class="stat-card"><div class="stat-label">Cost per User</div><div class="stat-value">$${ue.cost_per_user||0}</div></div>
-    </div>`;
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Broadcast
-// ─────────────────────────────────────────────────────────────────────────────
-function previewBroadcast() {
-  const html = document.getElementById('bc-body').value;
-  const p = document.getElementById('bc-preview');
-  p.style.display = 'block';
-  p.innerHTML = html || '<em style="color:var(--muted)">Nothing to preview</em>';
-}
-
-async function sendBroadcast() {
-  const subject = document.getElementById('bc-subject').value.trim();
-  const html_body = document.getElementById('bc-body').value.trim();
-  if (!subject || !html_body) { toast('Subject and body required', 'error'); return; }
-  confirmAction(`Send "${subject}" to ALL active users?`, '📢', 'doBroadcast', JSON.stringify({subject, html_body}));
-}
-
-async function doBroadcast(argsJson) {
-  try {
-    const args = JSON.parse(argsJson);
-    const d = await api('POST', '/api/admin/broadcast', args);
-    toast(`Sent to ${d.sent} users (${d.failed} failed)`, 'success');
-  } catch(e) { toast('Error: ' + e.message, 'error'); }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Jobs
-// ─────────────────────────────────────────────────────────────────────────────
-function renderJobs() {
-  const jobs = _data.jobs || [];
-  const staleIds = new Set((_staleJobs||[]).map(j=>j.id));
-  document.getElementById('jobs-table-wrap').innerHTML = jobs.length ? `
-    <table><thead><tr><th>ID</th><th>Type</th><th>Status</th><th>Progress</th><th>Message</th><th>Created</th><th>Updated</th><th>Actions</th></tr></thead>
-    <tbody>${jobs.map(j => {
-      const isStuck = staleIds.has(j.id);
-      return `
-      <tr style="${isStuck ? 'background:#fff5f5' : ''}">
-        <td class="mono">${j.id.slice(0,8)}${isStuck ? ' <span title="Stuck >10 min" style="color:var(--danger);font-size:10px">⚠️</span>' : ''}</td>
-        <td style="font-size:11px">${esc(j.type||'')}</td>
-        <td>${jobStatusPill(j.status)}</td>
-        <td>
-          <div class="mini-bar-wrap">
-            <div class="mini-bar"><div class="mini-bar-fill" style="width:${j.progress||0}%"></div></div>
-            <div class="mini-bar-pct">${j.progress||0}%</div>
-          </div>
-        </td>
-        <td class="truncate" style="max-width:200px;color:var(--muted);font-size:11px">${esc(j.message||'')}</td>
-        <td style="color:var(--muted);font-size:11px">${fmtDate(j.created_at)}</td>
-        <td style="color:var(--muted);font-size:11px">${fmtDate(j.updated_at)}</td>
-        <td><div class="actions">
-          ${['pending','processing'].includes(j.status) ? `<button class="btn btn-danger" onclick="confirmAction('Cancel this job?','⏹','adminCancelJob','${j.id}')">Cancel</button>` : ''}
-          <button class="btn btn-amber" onclick="confirmAction('Requeue this job?','↻','adminRequeueJob','${j.id}')">Requeue</button>
-        </div></td>
-      </tr>`;
-    }).join('')}
-    </tbody></table>` : '<div class="empty">No jobs</div>';
-}
-
-async function adminCancelJob(id) {
-  try { await api('POST', `/api/admin/jobs/${id}/cancel`); toast('Job cancelled', 'success'); load(); } catch(e) { toast('Error: ' + e.message, 'error'); }
-}
-async function adminRequeueJob(id) {
-  try { await api('POST', `/api/admin/jobs/${id}/requeue`); toast('Job requeued', 'success'); load(); } catch(e) { toast('Error: ' + e.message, 'error'); }
-}
-
-function startJobsAutoRefresh() {
-  if (_jobsTimer) clearInterval(_jobsTimer);
-  _jobsTimer = setInterval(() => {
-    if (document.getElementById('tab-jobs').classList.contains('active')) {
-      load();
-    }
-  }, 10000);
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Feature Flags
-// ─────────────────────────────────────────────────────────────────────────────
-const FLAG_META = {
-  groq_fallback:  { name: 'Groq Whisper Fallback', desc: 'Use Groq Whisper for videos with no captions (Tier 3 transcription)' },
-  spaced_rep:     { name: 'Spaced Repetition',     desc: 'Send day-3, day-7, day-30 review emails for each video' },
-  synthesis:      { name: 'Synthesis Emails',      desc: 'Send a cross-video synthesis email every 5 videos' },
-  welcome_email:  { name: 'Welcome Email',         desc: 'Send a welcome email when a user enrolls in a new course' },
-};
-
-async function loadFlags() {
-  document.getElementById('flags-grid').innerHTML = '<div class="loading">Loading…</div>';
-  try {
-    const flags = await api('GET', '/api/admin/flags');
-    document.getElementById('flags-grid').innerHTML = Object.entries(flags).map(([key, enabled]) => {
-      const m = FLAG_META[key] || { name: key, desc: '' };
-      return `
-        <div class="flag-card">
-          <div class="flag-info">
-            <div class="flag-name">${esc(m.name)}</div>
-            <div class="flag-desc">${esc(m.desc)}</div>
-          </div>
-          <label class="toggle">
-            <input type="checkbox" ${enabled ? 'checked' : ''} onchange="setFlag('${key}', this.checked)">
-            <span class="toggle-slider"></span>
-          </label>
-        </div>`;
-    }).join('');
-  } catch(e) { document.getElementById('flags-grid').innerHTML = `<div class="empty">Error: ${esc(e.message)}</div>`; }
-}
-
-async function setFlag(key, enabled) {
-  try {
-    await api('PUT', `/api/admin/flags/${key}`, { enabled });
-    toast(`${FLAG_META[key]?.name || key} ${enabled ? 'enabled' : 'disabled'}`, 'success');
-  } catch(e) { toast('Error: ' + e.message, 'error'); loadFlags(); }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Audit Log
-// ─────────────────────────────────────────────────────────────────────────────
-async function loadAudit() {
-  document.getElementById('audit-table-wrap').innerHTML = '<div class="loading">Loading…</div>';
-  try {
-    const d = await api('GET', '/api/admin/audit');
-    const entries = d.entries || [];
-    document.getElementById('audit-table-wrap').innerHTML = entries.length ? `
-      <table><thead><tr><th>Time</th><th>Action</th><th>Type</th><th>ID</th><th>Details</th></tr></thead>
-      <tbody>${entries.map(e => `
-        <tr>
-          <td style="color:var(--muted);font-size:11px;white-space:nowrap">${fmtDate(e.created_at)}</td>
-          <td><span class="audit-action">${esc(e.action||'')}</span></td>
-          <td style="color:var(--muted);font-size:11px">${esc(e.entity_type||'—')}</td>
-          <td class="mono">${e.entity_id ? e.entity_id.slice(0,8) : '—'}</td>
-          <td style="color:var(--muted);font-size:11px;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(e.details||'')}</td>
-        </tr>`).join('')}
-      </tbody></table>` : '<div class="empty">No audit entries yet</div>';
-  } catch(e) { document.getElementById('audit-table-wrap').innerHTML = `<div class="empty">Error: ${esc(e.message)}</div>`; }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// LLM Traces
-// ─────────────────────────────────────────────────────────────────────────────
-async function loadLLM() {
-  document.getElementById('llm-body').innerHTML = '<div class="loading">Loading…</div>';
-  try {
-    const d = await api('GET', '/api/admin/llm-traces');
-    const daily = d.daily || [];
-    const maxCost = Math.max(...daily.map(x => x.cost), 0.0001);
-    const byModel = d.by_model || [];
-    const recent  = d.recent  || [];
-
-    document.getElementById('llm-body').innerHTML = `
-      <!-- Top stats -->
-      <div class="stats-grid" style="margin-bottom:20px">
-        <div class="stat-card blue"><div class="stat-label">Total Calls</div><div class="stat-value">${d.total_calls||0}</div></div>
-        <div class="stat-card"><div class="stat-label">Total Tokens</div><div class="stat-value">${((d.total_tokens||0)/1000).toFixed(1)}K</div></div>
-        <div class="stat-card green"><div class="stat-label">Prompt Tokens</div><div class="stat-value">${((d.total_prompt_tokens||0)/1000).toFixed(1)}K</div></div>
-        <div class="stat-card purple"><div class="stat-label">Completion Tokens</div><div class="stat-value">${((d.total_comp_tokens||0)/1000).toFixed(1)}K</div></div>
-        <div class="stat-card amber"><div class="stat-label">Total Cost</div><div class="stat-value">$${(d.total_cost_usd||0).toFixed(4)}</div></div>
-        <div class="stat-card"><div class="stat-label">Avg Latency</div><div class="stat-value">${d.avg_latency_ms||0}ms</div></div>
-      </div>
-
-      <div class="two-col" style="margin-bottom:20px">
-        <!-- Daily cost chart -->
-        <div>
-          <div style="font-size:13px;font-weight:600;margin-bottom:10px">Daily Cost — Last 14 Days</div>
-          <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px">
-            ${daily.length ? `<div style="display:flex;align-items:flex-end;gap:4px;height:64px">
-              ${daily.map(x => `
-                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">
-                  <div title="$${(x.cost||0).toFixed(5)} on ${x.day}" style="width:100%;background:var(--warn);border-radius:3px 3px 0 0;height:${Math.round((x.cost||0)/maxCost*56)+4}px;opacity:0.8"></div>
-                  <div style="font-size:9px;color:var(--muted)">${x.day ? x.day.slice(5) : ''}</div>
-                </div>`).join('')}
-            </div>` : '<div style="color:var(--muted);font-size:12px">No traces yet — configure webhook in OpenRouter</div>'}
-          </div>
-        </div>
-
-        <!-- By model -->
-        <div>
-          <div style="font-size:13px;font-weight:600;margin-bottom:10px">By Model</div>
-          <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden">
-            ${byModel.length ? `<table style="width:100%;font-size:12px;border-collapse:collapse">
-              <thead><tr style="background:var(--bg)"><th style="padding:7px 12px;text-align:left;font-size:10px;color:var(--muted);text-transform:uppercase">Model</th><th style="padding:7px 12px;text-align:right;font-size:10px;color:var(--muted)">Calls</th><th style="padding:7px 12px;text-align:right;font-size:10px;color:var(--muted)">Tokens</th><th style="padding:7px 12px;text-align:right;font-size:10px;color:var(--muted)">Cost</th></tr></thead>
-              <tbody>${byModel.map(m => `<tr style="border-top:1px solid var(--border)">
-                <td style="padding:7px 12px;font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.model||'unknown')}</td>
-                <td style="padding:7px 12px;text-align:right;color:var(--muted)">${m.calls}</td>
-                <td style="padding:7px 12px;text-align:right;color:var(--muted)">${((m.tokens||0)/1000).toFixed(1)}K</td>
-                <td style="padding:7px 12px;text-align:right;color:var(--warn);font-weight:600">$${(m.cost||0).toFixed(5)}</td>
-              </tr>`).join('')}</tbody>
-            </table>` : '<div style="padding:16px;color:var(--muted);font-size:12px">No traces yet</div>'}
-          </div>
-        </div>
-      </div>
-
-      <!-- Recent calls -->
-      <div style="font-size:13px;font-weight:600;margin-bottom:10px">Recent Calls</div>
-      <div class="table-wrap">
-        ${recent.length ? `<table><thead><tr><th>Model</th><th>Tokens</th><th>Cost</th><th>Latency</th><th>Time</th></tr></thead>
-        <tbody>${recent.map(r => `<tr>
-          <td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.model||'—')}</td>
-          <td style="color:var(--muted)">${(r.total_tokens||0).toLocaleString()}</td>
-          <td style="color:var(--warn);font-weight:600">$${(r.cost_usd||0).toFixed(5)}</td>
-          <td style="color:var(--muted)">${r.latency_ms||0}ms</td>
-          <td style="color:var(--muted);font-size:11px">${fmtDate(r.created_at)}</td>
-        </tr>`).join('')}</tbody></table>`
-        : '<div class="empty">No traces yet — set up the OpenRouter webhook to start collecting data</div>'}
-      </div>
-
-      <!-- Setup instructions -->
-      ${!recent.length ? `<div style="margin-top:20px;background:var(--blue-light);border:1px solid #bcd4ff;border-radius:10px;padding:16px 20px;font-size:12px;color:var(--blue)">
-        <strong>Setup:</strong> OpenRouter → Settings → Observability → Webhook → Add Destination<br>
-        URL: <code style="background:rgba(0,0,0,0.06);padding:2px 6px;border-radius:4px">https://mindos.fly.dev/api/webhooks/openrouter</code>
-      </div>` : ''}
-    `;
-  } catch(e) { document.getElementById('llm-body').innerHTML = `<div class="empty">Error: ${esc(e.message)}</div>`; }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// System
-// ─────────────────────────────────────────────────────────────────────────────
-async function loadSystem() {
-  document.getElementById('system-body').innerHTML = '<div class="loading">Loading…</div>';
-  try {
-    const d = await api('GET', '/api/admin/system');
-    const rows = d.row_counts || {};
-    document.getElementById('system-body').innerHTML = `
-      <div class="sys-grid">
-        <div class="sys-card"><div class="sys-key">DB Size</div><div class="sys-val">${d.db_size_mb} MB</div></div>
-        <div class="sys-card"><div class="sys-key">Users</div><div class="sys-val">${rows.users||0}</div></div>
-        <div class="sys-card"><div class="sys-key">Courses</div><div class="sys-val">${rows.courses||0}</div></div>
-        <div class="sys-card"><div class="sys-key">Videos</div><div class="sys-val">${rows.videos||0}</div></div>
-        <div class="sys-card"><div class="sys-key">Emails</div><div class="sys-val">${rows.emails||0}</div></div>
-        <div class="sys-card"><div class="sys-key">Reviews</div><div class="sys-val">${rows.reviews||0}</div></div>
-        <div class="sys-card"><div class="sys-key">Jobs</div><div class="sys-val">${rows.jobs||0}</div></div>
-        <div class="sys-card"><div class="sys-key">Admin Sessions</div><div class="sys-val">${d.active_admin_sessions||0}</div></div>
-      </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="action-btn" onclick="runCron()">▶ Run Cron</button>
-        <button class="action-btn primary" onclick="downloadDB()">⬇ Download DB</button>
-      </div>
-    `;
-  } catch(e) { document.getElementById('system-body').innerHTML = `<div class="empty">Error: ${esc(e.message)}</div>`; }
-}
-
-async function downloadDB() {
-  const a = document.createElement('a');
-  a.href = '/api/admin/db/download?token=' + _token;
-  a.download = 'mindos.db';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  toast('DB download started', 'success');
+    <div class="sh"><h2>Recent Jobs</h2></div>
+    <div class="tw">${jobsTable(jobs)}</div>`;
 }
 
 async function runCron() {
+  const btn = document.getElementById('btn-cron');
+  if (!btn) return;
+  btn.disabled = true; btn.textContent = '…';
   try {
     await api('POST', '/api/admin/cron/run');
-    toast('Cron ran: emails sent & upcoming generated', 'success');
-    load();
-  } catch(e) { toast('Cron error: ' + e.message, 'error'); }
+    toast('Scheduler ran — emails sent');
+    await loadData();
+  } catch(e) { toast(e.message, 'err'); }
+  finally { if (btn) { btn.disabled = false; btn.textContent = '▶ Run'; } }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Email preview
-// ─────────────────────────────────────────────────────────────────────────────
-async function previewVideoEmails(videoId, title) {
-  document.getElementById('preview-title').textContent = title || 'Emails';
-  document.getElementById('preview-sub').textContent = 'Loading…';
-  document.getElementById('preview-slots').innerHTML = '';
-  document.getElementById('preview-iframe').srcdoc = '';
-  document.getElementById('preview-modal').style.display = 'flex';
+async function runAdvance() {
+  const btn = document.getElementById('btn-adv');
+  if (!btn) return;
+  btn.disabled = true; btn.textContent = '…';
   try {
-    const d = await fetch(`/api/videos/${videoId}/emails`).then(r=>r.json());
-    _previewEmails = d.emails || [];
-    renderPreviewSlots();
-    if (_previewEmails.length) showPreviewEmail(0);
-    document.getElementById('preview-sub').textContent = `${_previewEmails.length} email(s)`;
-  } catch(e) { document.getElementById('preview-sub').textContent = 'Error: ' + e.message; }
+    await api('POST', '/api/admin/cron/advance');
+    toast('Advance processing triggered');
+  } catch(e) { toast(e.message, 'err'); }
+  finally { if (btn) { btn.disabled = false; btn.textContent = '▶ Advance'; } }
 }
 
-function previewEmailByIdx(idx) {
-  const e = _emails[idx];
-  if (!e) return;
-  _previewEmails = [e];
-  document.getElementById('preview-title').textContent = e.subject || 'Email Preview';
-  document.getElementById('preview-sub').textContent = e.user_email + ' · ' + (e.slot||'');
-  document.getElementById('preview-slots').innerHTML = '';
-  document.getElementById('preview-modal').style.display = 'flex';
-  if (e.html_body) {
-    document.getElementById('preview-iframe').srcdoc = e.html_body;
-  } else {
-    document.getElementById('preview-iframe').srcdoc = '<p style="padding:20px;color:#888">No content yet</p>';
+// ── Users ─────────────────────────────────────────────────────────────────
+function renderUsers() {
+  if (!_data) return;
+  const users = _data.users || [];
+  const rows = users.map(u => {
+    const courses = (_data.courses || []).filter(c => c.user_id === u.id);
+    return `
+    <tr class="ck" onclick="toggleUser('${u.id}')">
+      <td style="font-weight:500;max-width:200px" class="ell">${esc(u.email)}</td>
+      <td><span class="mono">${esc(u.frequency||'—')}</span></td>
+      <td style="color:#666">${esc(u.depth||'—')}</td>
+      <td style="color:#666">${esc(u.tone||'—')}</td>
+      <td style="color:#444" class="mono">${esc((u.timezone||'').replace('Asia/',''))}</td>
+      <td style="color:#555;text-align:center">${courses.length}</td>
+      <td>${u.paused ? pill('paused') : pill('active')}</td>
+      <td style="color:#444;font-size:11px">${fd(u.created_at)}</td>
+      <td onclick="event.stopPropagation()">
+        <div class="ra">
+          ${u.paused
+            ? `<button class="btn bg" onclick="userResume('${u.id}')">Resume</button>`
+            : `<button class="btn bw" onclick="userPause('${u.id}')">Pause</button>`}
+          <button class="btn bd" onclick="userDelete('${u.id}','${esc(u.email)}')">Delete</button>
+        </div>
+      </td>
+    </tr>
+    <tr id="ux-${u.id}" class="xrow" style="display:none">
+      <td colspan="9">
+        <div class="xi" id="ux-i-${u.id}"><div class="loading">Loading…</div></div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('tab-users').innerHTML = `
+    <div class="sh"><h2>Users (${users.length})</h2></div>
+    <div class="tw">
+      <table>
+        <thead><tr>
+          <th>Email</th><th>Freq</th><th>Depth</th><th>Tone</th><th>TZ</th>
+          <th style="text-align:center">Courses</th><th>Status</th><th>Joined</th><th>Actions</th>
+        </tr></thead>
+        <tbody>${rows || '<tr><td colspan="9" class="empty">No users</td></tr>'}</tbody>
+      </table>
+    </div>`;
+}
+
+function toggleUser(uid) {
+  const row = document.getElementById('ux-' + uid);
+  if (_xUsers.has(uid)) {
+    _xUsers.delete(uid);
+    row.style.display = 'none';
+    return;
+  }
+  _xUsers.add(uid);
+  row.style.display = '';
+  const inner = document.getElementById('ux-i-' + uid);
+  const courses = (_data.courses || []).filter(c => c.user_id === uid);
+  if (!courses.length) { inner.innerHTML = '<div style="color:#2a2a2a;font-size:12px;padding:6px 0">No courses</div>'; return; }
+  inner.innerHTML = courses.map(c => `
+    <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #111">
+      ${pill(c.status)}
+      <span style="flex:1;font-size:12px;color:#888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"
+            title="${esc(c.playlist_title||c.playlist_url)}">${esc(c.playlist_title||'Untitled')}</span>
+      <span style="font-size:11px;color:#333">${c.videos_processed||0}/${c.total_videos||0} videos</span>
+      <button class="btn bw" onclick="goTab('courses',document.querySelector('[data-tab=courses]'))">Open →</button>
+    </div>`).join('');
+}
+
+async function userPause(id) {
+  try { await api('POST', `/api/admin/users/${id}/pause`); toast('User paused'); await loadData(); }
+  catch(e) { toast(e.message, 'err'); }
+}
+async function userResume(id) {
+  try { await api('POST', `/api/admin/users/${id}/resume`); toast('User resumed'); await loadData(); }
+  catch(e) { toast(e.message, 'err'); }
+}
+async function userDelete(id, email) {
+  if (!confirm('Delete ' + email + ' and all their courses, videos, and emails?')) return;
+  try { await api('DELETE', `/api/admin/users/${id}`); toast('User deleted'); await loadData(); }
+  catch(e) { toast(e.message, 'err'); }
+}
+
+// ── Courses ───────────────────────────────────────────────────────────────
+function renderCourses() {
+  if (!_data) return;
+  const courses = _data.courses || [];
+  const rows = courses.map(c => {
+    const pct = c.total_videos ? Math.round((c.videos_processed||0) / c.total_videos * 100) : 0;
+    return `
+    <tr class="ck" onclick="toggleCourse('${c.id}')">
+      <td style="max-width:260px">
+        <div class="ell" style="font-weight:500" title="${esc(c.playlist_title||c.playlist_url)}">${esc(c.playlist_title||'Untitled')}</div>
+        <div style="font-size:11px;color:#333;margin-top:1px" class="ell">${esc(c.user_email||'')}</div>
+      </td>
+      <td>${pill(c.status)}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:7px">
+          ${prog(pct, c.status === 'active')}
+          <span style="font-size:11px;color:#444">${c.videos_processed||0}/${c.total_videos||0}</span>
+        </div>
+      </td>
+      <td style="color:#444;font-size:11px">${fd(c.created_at)}</td>
+      <td onclick="event.stopPropagation()">
+        <div class="ra">
+          <button class="btn ba" onclick="reprocess('${c.id}')">↻ Reprocess</button>
+          ${c.paused
+            ? `<button class="btn bg" onclick="courseResume('${c.id}')">Resume</button>`
+            : `<button class="btn bw" onclick="coursePause('${c.id}')">Pause</button>`}
+          <button class="btn bd" onclick="courseDelete('${c.id}')">Delete</button>
+        </div>
+      </td>
+    </tr>
+    <tr id="cx-${c.id}" class="xrow" style="display:none">
+      <td colspan="5">
+        <div class="xi" id="cx-i-${c.id}"><div class="loading">Loading videos…</div></div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('tab-courses').innerHTML = `
+    <div class="sh"><h2>Courses (${courses.length})</h2></div>
+    <div class="tw">
+      <table>
+        <thead><tr>
+          <th>Course</th><th>Status</th><th>Progress</th><th>Created</th><th>Actions</th>
+        </tr></thead>
+        <tbody>${rows || '<tr><td colspan="5" class="empty">No courses</td></tr>'}</tbody>
+      </table>
+    </div>`;
+}
+
+async function toggleCourse(cid) {
+  const row = document.getElementById('cx-' + cid);
+  if (_xCourses.has(cid)) {
+    _xCourses.delete(cid);
+    row.style.display = 'none';
+    return;
+  }
+  _xCourses.add(cid);
+  row.style.display = '';
+  await loadCourseVideos(cid);
+}
+
+async function loadCourseVideos(cid) {
+  const inner = document.getElementById('cx-i-' + cid);
+  if (!inner) return;
+  try {
+    const d = await api('GET', `/api/admin/courses/${cid}/videos`);
+    const vids = d.videos || [];
+    if (!vids.length) { inner.innerHTML = '<div style="color:#2a2a2a;font-size:12px;padding:6px 0">No videos</div>'; return; }
+    inner.innerHTML = vids.map(v => videoRow(v, cid)).join('');
+  } catch(e) {
+    inner.innerHTML = `<div style="color:#f87171;font-size:12px;padding:6px 0">${esc(e.message)}</div>`;
   }
 }
 
-function renderPreviewSlots() {
-  document.getElementById('preview-slots').innerHTML = _previewEmails.map((e,i) =>
-    `<button class="slot-btn ${i===0?'active':''}" onclick="showPreviewEmail(${i})">${esc(e.slot||`Email ${i+1}`)}</button>`
-  ).join('');
+function videoRow(v, cid) {
+  const yt = `https://youtube.com/watch?v=${esc(v.youtube_id)}`;
+  const hasT = v.has_transcript;
+  const canRetry = ['failed','skipped','pending'].includes(v.status);
+  return `
+  <div class="vr" id="vr-${v.id}">
+    <div class="vn">${(v.position||0)+1}</div>
+    <div class="vi">
+      <div class="vt"><a href="${yt}" target="_blank">${esc(v.title||'Untitled')}</a></div>
+      ${v.error_msg ? `<div class="ve">${esc(v.error_msg)}</div>` : ''}
+      <div class="vm">${v.email_count||0} emails</div>
+    </div>
+    <div class="vacts">
+      ${pill(v.status)}
+      ${hasT ? `<button class="btn bb" onclick="viewTx('${v.id}')">Transcript</button>` : ''}
+      ${canRetry ? `
+        <button class="btn ba" onclick="retryVid('${v.id}','${cid}')">↻ Retry</button>
+        <button class="btn bw" onclick="toggleInject('${v.id}')">Inject</button>
+      ` : ''}
+    </div>
+  </div>
+  <div id="inj-${v.id}" style="display:none">
+    <div class="injf">
+      <label>Paste transcript (min 100 chars) — saves + queues processing</label>
+      <textarea id="inj-t-${v.id}" placeholder="Paste transcript text here…"></textarea>
+      <div class="injf-acts">
+        <button class="btn bg" onclick="submitInject('${v.id}','${cid}')">✓ Save &amp; Retry</button>
+        <button class="btn bw" onclick="toggleInject('${v.id}')">Cancel</button>
+      </div>
+    </div>
+  </div>`;
 }
 
-function showPreviewEmail(idx) {
-  document.querySelectorAll('.slot-btn').forEach((b,i) => b.classList.toggle('active', i===idx));
-  const e = _previewEmails[idx];
-  document.getElementById('preview-iframe').srcdoc = e?.html_body || '<p style="padding:20px;color:#888">No content</p>';
+function toggleInject(vid) {
+  const el = document.getElementById('inj-' + vid);
+  if (!el) return;
+  const open = el.style.display !== 'none';
+  el.style.display = open ? 'none' : '';
+  if (!open) el.querySelector('textarea').focus();
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Confirm dialog
-// ─────────────────────────────────────────────────────────────────────────────
-function confirmAction(msg, icon, callbackName, arg) {
-  document.getElementById('confirm-icon').textContent = icon || '⚠️';
-  document.getElementById('confirm-title').textContent = 'Are you sure?';
-  document.getElementById('confirm-msg').textContent = msg;
-  _confirmCb = () => window[callbackName](arg);
-  document.getElementById('confirm-modal').style.display = 'flex';
+async function submitInject(vid, cid) {
+  const text = (document.getElementById('inj-t-' + vid).value || '').trim();
+  if (text.length < 100) { toast('Need at least 100 chars', 'err'); return; }
+  try {
+    await api('POST', `/api/admin/videos/${vid}/inject-transcript`, {text});
+    toast('Transcript saved — processing queued');
+    document.getElementById('inj-' + vid).style.display = 'none';
+    await loadCourseVideos(cid);
+  } catch(e) { toast(e.message, 'err'); }
 }
 
-function doConfirm() {
-  closeModal('confirm-modal');
-  if (_confirmCb) { _confirmCb(); _confirmCb = null; }
+async function retryVid(vid, cid) {
+  try {
+    await api('POST', `/api/admin/videos/${vid}/retry`);
+    toast('Retry queued');
+    await loadCourseVideos(cid);
+  } catch(e) { toast(e.message, 'err'); }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Filters
-// ─────────────────────────────────────────────────────────────────────────────
-function filterTable(wrapperId, q) {
-  const wrap = document.getElementById(wrapperId);
-  if (!wrap) return;
-  const rows = wrap.querySelectorAll('tbody tr');
-  const lq = q.toLowerCase();
-  rows.forEach(r => r.style.display = r.textContent.toLowerCase().includes(lq) ? '' : 'none');
+async function viewTx(vid) {
+  try {
+    const d = await api('GET', `/api/admin/videos/${vid}/transcript`);
+    const w = window.open('', '_blank', 'width=720,height=640,scrollbars=yes');
+    w.document.write(`<html><head><style>
+      body{margin:0;background:#080808;color:#bbb;font-family:monospace;font-size:12px;
+           padding:20px;line-height:1.7;white-space:pre-wrap;word-wrap:break-word}
+    </style></head><body>${esc(d.transcript)}</body></html>`);
+    w.document.close();
+  } catch(e) { toast(e.message, 'err'); }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Pill helpers
-// ─────────────────────────────────────────────────────────────────────────────
-function statusPill(s) {
-  const m = { active:'pill-green', processing:'pill-blue', paused:'pill-amber', cancelled:'pill-gray', failed:'pill-red' };
-  return `<span class="pill ${m[s]||'pill-gray'}">${s||'—'}</span>`;
-}
-function videoStatusPill(s) {
-  const m = { ready:'pill-green', pending:'pill-blue', processing:'pill-amber', failed:'pill-red', skipped:'pill-gray' };
-  return `<span class="pill ${m[s]||'pill-gray'}">${s||'—'}</span>`;
-}
-function emailStatusPill(s) {
-  const m = { sent:'pill-green', pending:'pill-blue', cancelled:'pill-gray' };
-  return `<span class="pill ${m[s]||'pill-gray'}">${s||'—'}</span>`;
-}
-function jobStatusPill(s) {
-  const m = { done:'pill-green', pending:'pill-blue', processing:'pill-amber', failed:'pill-red' };
-  return `<span class="pill ${m[s]||'pill-gray'}">${s||'—'}</span>`;
-}
-function progressBar(done, total) {
-  const pct = total > 0 ? Math.min(100, Math.round((done||0)/total*100)) : 0;
-  return `<div class="mini-bar-wrap"><div class="mini-bar"><div class="mini-bar-fill" style="width:${pct}%"></div></div><div class="mini-bar-pct">${done||0}/${total||0}</div></div>`;
+async function reprocess(cid) {
+  if (!confirm('Reprocess all failed/skipped videos in this course?')) return;
+  try {
+    const d = await api('POST', `/api/admin/courses/${cid}/reprocess`);
+    toast('Reprocess queued — job ' + d.job_id.slice(0,8));
+    await loadData();
+  } catch(e) { toast(e.message, 'err'); }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Utilities
-// ─────────────────────────────────────────────────────────────────────────────
-function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function fmtDate(d) {
-  if (!d) return '—';
-  try { return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}); }
-  catch { return d; }
+async function coursePause(cid) {
+  try { await api('POST', `/api/admin/courses/${cid}/pause`); toast('Course paused'); await loadData(); }
+  catch(e) { toast(e.message, 'err'); }
 }
-function toast(msg, type='') {
-  const t = document.createElement('div');
-  t.className = 'toast-item' + (type ? ' ' + type : '');
-  t.textContent = msg;
-  document.getElementById('toast').appendChild(t);
-  setTimeout(() => t.remove(), 3500);
+async function courseResume(cid) {
+  try { await api('POST', `/api/admin/courses/${cid}/resume`); toast('Course resumed'); await loadData(); }
+  catch(e) { toast(e.message, 'err'); }
+}
+async function courseDelete(cid) {
+  if (!confirm('Delete this course and all its emails and videos?')) return;
+  try { await api('DELETE', `/api/admin/courses/${cid}`); toast('Course deleted'); await loadData(); }
+  catch(e) { toast(e.message, 'err'); }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Boot
-// ─────────────────────────────────────────────────────────────────────────────
-window.addEventListener('load', () => {
-  const saved = localStorage.getItem('admin_token');
-  if (saved) { _token = saved; showApp(); }
+// ── Jobs ──────────────────────────────────────────────────────────────────
+function renderJobs() {
+  if (!_data) return;
+  const jobs = _data.jobs || [];
+  document.getElementById('tab-jobs').innerHTML = `
+    <div class="sh"><h2>Jobs (${jobs.length})</h2>
+      <div class="sh-r">
+        <span style="font-size:11px;color:#333" id="poll-lbl"></span>
+        <button class="bsm" onclick="loadData()">↻</button>
+      </div>
+    </div>
+    <div class="tw">${jobsTable(jobs)}</div>`;
+  updatePollLabel();
+}
 
-  // Render jobs tab when switched to (auto-refresh already handles updates)
-  document.querySelector('[data-tab="jobs"]').addEventListener('click', () => {
-    setTimeout(() => renderJobs(), 50);
-  });
-});
+function jobsTable(jobs) {
+  if (!jobs.length) return '<div class="empty">No jobs</div>';
+  return `<table>
+    <thead><tr>
+      <th>ID</th><th>Type</th><th>Status</th><th>Progress</th><th>Message</th><th>Updated</th><th>Actions</th>
+    </tr></thead>
+    <tbody>${jobs.map(j => `
+      <tr>
+        <td class="mono" style="color:#2a2a2a">${j.id.slice(0,8)}</td>
+        <td style="color:#666">${esc(j.type||'')}</td>
+        <td>${pill(j.status)}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:7px">
+            ${prog(j.progress||0, j.status==='done')}
+            <span style="font-size:11px;color:#444">${j.progress||0}%</span>
+          </div>
+        </td>
+        <td style="max-width:240px;color:#444;font-size:11px" class="ell">${esc(j.message||'')}</td>
+        <td style="color:#333;font-size:11px">${fd(j.updated_at||j.created_at)}</td>
+        <td>
+          <div class="ra">
+            ${['pending','failed'].includes(j.status)
+              ? `<button class="btn ba" onclick="requeueJob('${j.id}')">↻ Requeue</button>` : ''}
+            ${j.status === 'processing'
+              ? `<button class="btn bd" onclick="cancelJob('${j.id}')">Stop</button>` : ''}
+          </div>
+        </td>
+      </tr>`).join('')}
+    </tbody></table>`;
+}
 
-// Re-render jobs whenever data reloads and jobs tab is active
-const _origLoad = load;
+function startPoll() {
+  stopPoll();
+  _poll = setInterval(async () => {
+    if (_tab !== 'jobs') { stopPoll(); return; }
+    const hasActive = (_data?.jobs || []).some(j => j.status === 'processing');
+    if (!hasActive) { stopPoll(); updatePollLabel(); return; }
+    try {
+      _data = await api('GET', '/api/admin/data');
+      renderJobs();
+    } catch(e) {}
+  }, 5000);
+  updatePollLabel();
+}
+
+function stopPoll() {
+  if (_poll) { clearInterval(_poll); _poll = null; }
+}
+
+function updatePollLabel() {
+  const lbl = document.getElementById('poll-lbl');
+  if (!lbl) return;
+  const hasActive = (_data?.jobs || []).some(j => j.status === 'processing');
+  lbl.textContent = hasActive ? 'auto-refreshing…' : '';
+}
+
+async function requeueJob(id) {
+  try { await api('POST', `/api/admin/jobs/${id}/requeue`); toast('Requeued'); await loadData(); renderJobs(); }
+  catch(e) { toast(e.message, 'err'); }
+}
+async function cancelJob(id) {
+  try { await api('POST', `/api/admin/jobs/${id}/cancel`); toast('Stopped'); await loadData(); renderJobs(); }
+  catch(e) { toast(e.message, 'err'); }
+}
+
+// ── Emails ────────────────────────────────────────────────────────────────
+async function loadEmails() {
+  const el = document.getElementById('tab-emails');
+  el.innerHTML = '<div class="loading">Loading…</div>';
+  try {
+    const qs = _emailFilter === 'all' ? '' : '&status=' + _emailFilter;
+    const d = await api('GET', '/api/admin/emails?limit=200' + qs);
+    const emails = d.emails || [];
+
+    const filters = ['all','pending','sent','failed','cancelled'].map(f =>
+      `<button class="fb${_emailFilter===f?' on':''}" onclick="setEF('${f}')">${f==='all'?'All':f[0].toUpperCase()+f.slice(1)}</button>`
+    ).join('');
+
+    const rows = emails.map(e => `
+      <tr>
+        <td style="max-width:220px" class="ell">${esc(e.subject||'(no subject)')}</td>
+        <td style="color:#555;font-size:11px" class="ell">${esc(e.user_email||'')}</td>
+        <td><span class="mono" style="color:#444">${esc(e.slot||'—')}</span></td>
+        <td style="color:#444;font-size:11px">${fd(e.scheduled_at)}</td>
+        <td>${pill(e.status)}</td>
+        <td style="color:#444;font-size:11px;text-align:center">${e.open_count||0}</td>
+        <td>
+          <div class="ra">
+            <button class="btn bb" onclick="previewEmail('${e.id}')">Preview</button>
+            ${e.status === 'pending'
+              ? `<button class="btn bg" onclick="sendNow('${e.id}')">Send</button>
+                 <button class="btn bd" onclick="cancelEmail('${e.id}')">Cancel</button>` : ''}
+            ${e.status === 'sent'
+              ? `<button class="btn bw" onclick="resendEmail('${e.id}')">Resend</button>` : ''}
+          </div>
+        </td>
+      </tr>`).join('');
+
+    el.innerHTML = `
+      <div class="sh">
+        <h2>Emails (${emails.length})</h2>
+        <div class="fbar">${filters}</div>
+      </div>
+      <div class="tw">
+        <table>
+          <thead><tr>
+            <th>Subject</th><th>User</th><th>Slot</th><th>Scheduled</th>
+            <th>Status</th><th style="text-align:center">Opens</th><th>Actions</th>
+          </tr></thead>
+          <tbody>${rows || '<tr><td colspan="7" class="empty">No emails</td></tr>'}</tbody>
+        </table>
+      </div>`;
+  } catch(e) {
+    el.innerHTML = `<div class="empty" style="color:#f87171">${esc(e.message)}</div>`;
+  }
+}
+
+function setEF(f) { _emailFilter = f; loadEmails(); }
+
+async function previewEmail(id) {
+  try {
+    const d = await api('GET', '/api/admin/emails/' + id);
+    const html = d.html_body || '<pre style="color:#ccc;background:#080808;padding:20px;font-size:12px">' + esc(d.plain_body||'(no content)') + '</pre>';
+    const w = window.open('', '_blank', 'width=680,height=720,scrollbars=yes');
+    w.document.write(html);
+    w.document.close();
+  } catch(e) { toast(e.message, 'err'); }
+}
+
+async function sendNow(id) {
+  try { await api('POST', `/api/admin/emails/${id}/send-now`); toast('Sent!'); loadEmails(); }
+  catch(e) { toast(e.message, 'err'); }
+}
+async function resendEmail(id) {
+  try { await api('POST', `/api/admin/emails/${id}/resend`); toast('Resent'); loadEmails(); }
+  catch(e) { toast(e.message, 'err'); }
+}
+async function cancelEmail(id) {
+  try { await api('POST', `/api/admin/emails/${id}/cancel`); toast('Cancelled'); loadEmails(); }
+  catch(e) { toast(e.message, 'err'); }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+if (_tok) {
+  boot();
+} else {
+  document.getElementById('login').style.display = 'flex';
+}
 </script>
 </body>
 </html>

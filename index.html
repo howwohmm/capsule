@@ -1307,9 +1307,10 @@ if (!localStorage.getItem(OB_KEY)) {
 
 // ── Timezone ───────────────────────────────────────────────────────────────
 const tzSel  = document.getElementById('timezone');
-const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+const _rawTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata';
+const userTz = _rawTz === 'Asia/Calcutta' ? 'Asia/Kolkata' : _rawTz;
 const tzList = [...new Set([
-  userTz,'UTC',
+  userTz,'Asia/Kolkata',
   'America/New_York','America/Chicago','America/Denver','America/Los_Angeles',
   'America/Sao_Paulo','Europe/London','Europe/Paris','Europe/Berlin','Europe/Moscow',
   'Asia/Dubai','Asia/Kolkata','Asia/Singapore','Asia/Tokyo','Australia/Sydney',
@@ -1732,7 +1733,7 @@ async function toggleSchedule(courseId) {
   const email = document.getElementById('courses-email').value.trim();
   try {
     const resp = await fetch(`/api/courses/${courseId}/schedule?email=${encodeURIComponent(email)}`);
-    const { videos = [], timezone = 'UTC' } = await resp.json();
+    const { videos = [], timezone = 'Asia/Kolkata' } = await resp.json();
     panel.innerHTML = renderSchedule(videos, timezone, courseId, email);
   } catch {
     panel.innerHTML = '<div class="schedule-loading">Could not load schedule.</div>';

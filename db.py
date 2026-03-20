@@ -24,6 +24,10 @@ def get_db():
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
+    conn.execute("PRAGMA synchronous=NORMAL")
+    conn.execute("PRAGMA cache_size=-32000")
+    conn.execute("PRAGMA mmap_size=268435456")
+    conn.execute("PRAGMA temp_store=MEMORY")
     try:
         yield conn
         conn.commit()
@@ -50,7 +54,7 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
     id          TEXT PRIMARY KEY,
     email       TEXT UNIQUE NOT NULL,
-    timezone    TEXT DEFAULT 'UTC',
+    timezone    TEXT DEFAULT 'Asia/Kolkata',
     frequency   TEXT DEFAULT '1x',
     tone        TEXT DEFAULT 'Casual',
     depth       TEXT DEFAULT 'Mix',
@@ -223,7 +227,7 @@ def upsert_user(email: str, prefs: dict) -> str:
             conn.execute(
                 """UPDATE users SET timezone=?, frequency=?, tone=?, depth=?, active_days=?
                    WHERE email=?""",
-                (prefs.get("timezone", "UTC"), prefs.get("frequency", "1x"),
+                (prefs.get("timezone", "Asia/Kolkata"), prefs.get("frequency", "1x"),
                  prefs.get("tone", "Casual"), prefs.get("depth", "Mix"),
                  json.dumps(prefs.get("active_days", ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"])),
                  email)
@@ -235,7 +239,7 @@ def upsert_user(email: str, prefs: dict) -> str:
                 """INSERT INTO users (id, email, timezone, frequency, tone, depth, active_days)
                    VALUES (?, ?, ?, ?, ?, ?, ?)""",
                 (user_id, email,
-                 prefs.get("timezone", "UTC"),
+                 prefs.get("timezone", "Asia/Kolkata"),
                  prefs.get("frequency", "1x"),
                  prefs.get("tone", "Casual"),
                  prefs.get("depth", "Mix"),
@@ -938,7 +942,10 @@ def get_all_emails(limit: int = 200, offset: int = 0, status_filter: str = None)
     with get_db() as conn:
         if status_filter:
             rows = conn.execute(
-                """SELECT e.*, u.email as user_email, v.title as video_title, c.playlist_title
+                """SELECT e.id, e.video_id, e.user_id, e.slot, e.subject,
+                          e.scheduled_at, e.sent_at, e.status, e.created_at,
+                          e.opened_at, e.open_count,
+                          u.email as user_email, v.title as video_title, c.playlist_title
                    FROM emails e
                    JOIN users u ON e.user_id = u.id
                    JOIN videos v ON e.video_id = v.id
@@ -949,7 +956,10 @@ def get_all_emails(limit: int = 200, offset: int = 0, status_filter: str = None)
             ).fetchall()
         else:
             rows = conn.execute(
-                """SELECT e.*, u.email as user_email, v.title as video_title, c.playlist_title
+                """SELECT e.id, e.video_id, e.user_id, e.slot, e.subject,
+                          e.scheduled_at, e.sent_at, e.status, e.created_at,
+                          e.opened_at, e.open_count,
+                          u.email as user_email, v.title as video_title, c.playlist_title
                    FROM emails e
                    JOIN users u ON e.user_id = u.id
                    JOIN videos v ON e.video_id = v.id
@@ -1534,8 +1544,14 @@ def save_llm_trace(trace: dict) -> None:
                (id, model, prompt_tokens, completion_tokens, total_tokens, cost_usd, latency_ms, raw, created_at)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (trace_id, model, prompt_tokens, completion_tokens, total_tokens,
-             cost_usd, latency_ms, json.dumps(trace), now_utc())
+             cost_usd, latency_ms, None, now_utc())
         )
+
+
+def prune_old_sessions() -> None:
+    """Delete admin sessions older than 7 days."""
+    with get_db() as conn:
+        conn.execute("DELETE FROM admin_sessions WHERE created_at < datetime('now', '-7 days')")
 
 
 def get_llm_trace_stats() -> dict:

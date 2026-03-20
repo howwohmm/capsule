@@ -19,10 +19,12 @@ import uuid
 import db
 from transcript import get_transcript, publish_transcript, resolve_playlist
 from llm import generate_all_slots, render_html
+from mailer import send_alert
 from config import WORKER_CONCURRENCY
 
 _worker_thread: Optional[threading.Thread] = None
 _stop_event = threading.Event()
+_job_lock = threading.Lock()   # ensures only one playlist job runs at a time
 
 
 # ---------------------------------------------------------------------------
@@ -35,6 +37,8 @@ def process_playlist_job(job: dict):
     user_id   = payload["user_id"]
     course_id = payload["course_id"]
     url       = payload["playlist_url"]
+    # JIT mode: only process this many new videos (None = process all)
+    max_videos = payload.get("max_videos")
 
     user = None
     with db.get_db() as conn:
@@ -83,6 +87,8 @@ def process_playlist_job(job: dict):
     batch_delivery_datetimes = []
     batch_video_ids = []
     synthesis_batch_num = 0
+    newly_processed = 0
+    llm_failed_titles = []  # collect LLM failures for end-of-job alert
 
     for i, video in enumerate(videos):
         video_id   = video["id"]
@@ -95,14 +101,21 @@ def process_playlist_job(job: dict):
         if video["status"] in ("ready", "skipped"):
             continue
 
+        # JIT mode: stop once we've processed the requested number of new videos
+        if max_videos is not None and newly_processed >= max_videos:
+            db.update_job(job_id, int(10 + 85 * i / total), f"JIT: pausing after {newly_processed} video(s), more queued daily")
+            break
+
         progress = int(10 + 85 * i / total)
         db.update_job(job_id, progress, f"[{i+1}/{total}] {title[:50]}...")
         db.update_video_status(video_id, "processing")
 
-        # 1. Transcript
-        transcript = get_transcript(vurl)
-        if transcript:
-            db.save_transcript(video_id, transcript)
+        # 1. Transcript — use pre-saved one (e.g. browser-injected) if available
+        transcript = db.get_video_transcript(video_id)
+        if not transcript:
+            transcript = get_transcript(vurl)
+            if transcript:
+                db.save_transcript(video_id, transcript)
         if not transcript:
             db.update_video_status(video_id, "skipped", error_msg="No captions available")
             db.increment_videos_processed(course_id)
@@ -127,6 +140,7 @@ def process_playlist_job(job: dict):
         if not slot_outputs:
             db.update_video_status(video_id, "failed", error_msg="LLM generation failed")
             db.increment_videos_processed(course_id)
+            llm_failed_titles.append(title)
             continue
 
         # 4. Build email_data dict for scheduling
@@ -157,6 +171,7 @@ def process_playlist_job(job: dict):
 
         db.update_video_status(video_id, "ready", transcript_url=transcript_url)
         db.increment_videos_processed(course_id)
+        newly_processed += 1
 
         # 6. Track for synthesis
         batch_video_ids.append(video_id)
@@ -181,7 +196,23 @@ def process_playlist_job(job: dict):
         time.sleep(2)
 
     db.update_course_status(course_id, "active")
-    db.update_job(job_id, 100, f"Done — {total} video(s) processed.", "done")
+    if max_videos is not None and newly_processed < (total - already_done):
+        db.update_job(job_id, int(10 + 85 * newly_processed / total),
+                      f"JIT: {newly_processed} processed, rest queued daily.", "done")
+    else:
+        db.update_job(job_id, 100, f"Done — {total} video(s) processed.", "done")
+
+    if llm_failed_titles:
+        failed_list = "\n".join(f"  - {t}" for t in llm_failed_titles)
+        send_alert(
+            f"{len(llm_failed_titles)} video(s) failed LLM generation",
+            f"Course job {job_id} finished with {len(llm_failed_titles)} LLM failure(s).\n\n"
+            f"Failed videos:\n{failed_list}\n\n"
+            f"All LLM tiers were exhausted (rate limited or errored). "
+            f"Check OpenRouter quota or add credit.\n\n"
+            f"Admin: http://157.245.103.89/admin"
+        )
+
     print(f"[worker] ✅ job {job_id} complete for course {course_id}")
 
 
@@ -192,17 +223,30 @@ def process_playlist_job(job: dict):
 def _worker_loop():
     print("[worker] started")
     while not _stop_event.is_set():
+        if _job_lock.locked():
+            # Another job is still running — don't pile on
+            time.sleep(3)
+            continue
         job = db.claim_next_job()
         if job:
             print(f"[worker] claiming job {job['id']} type={job['type']}")
-            try:
-                if job["type"] == "process_playlist":
-                    process_playlist_job(job)
-                else:
-                    db.update_job(job["id"], 0, f"Unknown job type: {job['type']}", "failed")
-            except Exception as e:
-                print(f"[worker] ❌ job {job['id']} crashed: {e}")
-                db.update_job(job["id"], 0, str(e), "failed")
+            with _job_lock:
+                try:
+                    if job["type"] == "process_playlist":
+                        process_playlist_job(job)
+                    else:
+                        db.update_job(job["id"], 0, f"Unknown job type: {job['type']}", "failed")
+                except Exception as e:
+                    import sentry_sdk
+                    sentry_sdk.capture_exception(e)
+                    print(f"[worker] ❌ job {job['id']} crashed: {e}")
+                    db.update_job(job["id"], 0, str(e), "failed")
+                    send_alert(
+                        f"Job crashed: {job['type']}",
+                        f"Job {job['id']} crashed with an unhandled exception.\n\n"
+                        f"Error: {e}\n\n"
+                        f"Admin: http://157.245.103.89/admin"
+                    )
         else:
             time.sleep(3)
     print("[worker] stopped")

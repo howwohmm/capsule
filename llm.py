@@ -11,13 +11,14 @@ Architecture:
 import os
 import re
 import json
+import time as _time
 from typing import Optional
 
 import requests as _requests
 import openai
 from pydantic import BaseModel, Field
 
-from config import OPENROUTER_API_KEY, LLM_MODEL, LLM_BUDGET_CAP
+from config import OPENROUTER_API_KEY, LLM_MODEL, LLM_MODEL_FALLBACKS, LLM_BUDGET_CAP
 
 
 # ---------------------------------------------------------------------------
@@ -467,6 +468,19 @@ def _check_budget() -> None:
         usage = float(data.get("usage", 0) or 0)
         print(f"   [llm] OpenRouter usage: ${usage:.4f} / ${LLM_BUDGET_CAP:.2f} cap")
         if usage >= LLM_BUDGET_CAP:
+            try:
+                from mailer import send_alert
+                send_alert(
+                    f"LLM budget cap hit: ${usage:.4f}",
+                    f"OpenRouter spend ${usage:.4f} has hit the ${LLM_BUDGET_CAP:.2f} cap.\n\n"
+                    f"LLM generation is paused. To resume:\n"
+                    f"  1. Add credit to OpenRouter\n"
+                    f"  2. Raise LLM_BUDGET_CAP in /app/.env on the server\n"
+                    f"  3. docker restart app_capsule_1\n\n"
+                    f"Admin: http://157.245.103.89/admin"
+                )
+            except Exception:
+                pass
             raise RuntimeError(
                 f"LLM budget cap reached: ${usage:.4f} spent >= ${LLM_BUDGET_CAP:.2f} limit. "
                 f"Raise LLM_BUDGET_CAP env var to continue."
@@ -477,32 +491,62 @@ def _check_budget() -> None:
         print(f"   [llm] budget check error: {e} — allowing call")
 
 
+def _rate_limit_wait(e: openai.RateLimitError) -> float:
+    """Extract how long to wait from a 429 response. Returns seconds."""
+    try:
+        headers = e.response.headers
+        # X-RateLimit-Reset: epoch milliseconds (OpenRouter)
+        reset_ms = headers.get("X-RateLimit-Reset")
+        if reset_ms:
+            wait = int(reset_ms) / 1000 - _time.time()
+            return max(2.0, min(wait + 1, 300))
+        # Retry-After: seconds (standard)
+        retry_after = headers.get("Retry-After")
+        if retry_after:
+            return float(retry_after) + 1
+    except Exception:
+        pass
+    return 65.0  # default: 65s (RPM window is 60s)
+
+
 def _call_llm(prompt: str, max_tokens: int = 2000, retries: int = 3) -> Optional[str]:
-    """Raw LLM call, returns content string or None."""
+    """Raw LLM call with model-tier fallback.
+
+    On rate limit: immediately tries next model in tier (no sleeping).
+    Only retries the same model on transient errors (non-429).
+    """
     client = _get_client()
-    for attempt in range(1, retries + 1):
-        try:
-            resp = client.chat.completions.create(
-                model=LLM_MODEL,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "You are Capsule, a learning email writer. "
-                            "Return ONLY a valid JSON object. No preamble, no markdown fences, no explanation. "
-                            "Just the raw JSON."
-                        ),
-                    },
-                    {"role": "user", "content": prompt},
-                ],
-                max_tokens=max_tokens,
-                temperature=0.7,
-            )
-            content = resp.choices[0].message.content
-            if content and content.strip():
-                return content.strip()
-        except Exception as e:
-            print(f"   [llm] attempt {attempt} failed: {e}")
+    model_tier = [LLM_MODEL] + LLM_MODEL_FALLBACKS
+
+    for model in model_tier:
+        for attempt in range(1, retries + 1):
+            try:
+                resp = client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": (
+                                "You are Capsule, a learning email writer. "
+                                "Return ONLY a valid JSON object. No preamble, no markdown fences, no explanation. "
+                                "Just the raw JSON."
+                            ),
+                        },
+                        {"role": "user", "content": prompt},
+                    ],
+                    max_tokens=max_tokens,
+                    temperature=0.7,
+                )
+                content = resp.choices[0].message.content
+                if content and content.strip():
+                    if model != LLM_MODEL:
+                        print(f"   [llm] used fallback model: {model}")
+                    return content.strip()
+            except openai.RateLimitError:
+                print(f"   [llm] {model} rate limited — trying next tier")
+                break  # don't retry this model, move to next
+            except Exception as e:
+                print(f"   [llm] {model} attempt {attempt} failed: {e}")
     return None
 
 
