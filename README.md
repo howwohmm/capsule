@@ -1,50 +1,82 @@
 # Capsule
 
-Turn any YouTube playlist into a daily email course with spaced repetition. You give it a playlist, it extracts transcripts, chunks them into lessons, and emails you one a day.
+Turn any YouTube playlist into a daily email course with spaced repetition. Submit a playlist URL and your email — get one lesson a day until the course is done.
 
 **Live at:** [mindos.fly.dev](https://mindos.fly.dev)
 
 ## How it works
 
-1. You submit a YouTube playlist URL and your email
-2. The app fetches all video transcripts via `youtube-transcript-api`
-3. An LLM (OpenAI/Groq) breaks each transcript into digestible lessons with key takeaways
-4. Lessons are stored in SQLite with a spaced repetition schedule
-5. APScheduler sends one email per day via the mailer until the course is done
-6. You can track progress live via SSE stream or poll the job status endpoint
+1. Submit a YouTube playlist URL + email
+2. App fetches all video transcripts (3-tier pipeline)
+3. LLM (OpenRouter) breaks each transcript into lessons with key takeaways
+4. Lessons stored in SQLite with a spaced repetition schedule
+5. APScheduler emails one lesson per day via Resend until the course is complete
+6. Track progress live via SSE stream or poll the job status endpoint
 
 ## Tech stack
 
-- **Backend:** FastAPI + APScheduler
-- **Transcript extraction:** `youtube-transcript-api`, `yt-dlp` fallback
-- **LLM:** OpenAI + Groq (configurable)
-- **Database:** SQLite (via custom `db.py`)
-- **Email:** Configured via `mailer.py` (SMTP)
-- **Sheets sync:** gspread + Google Auth for admin reporting
-- **Deployment:** Fly.io (`fly.toml` included)
-- **Frontend:** Single-page HTML/JS (`index.html`, `admin.html`)
+| Layer | Tech |
+|---|---|
+| Backend | FastAPI + APScheduler |
+| Transcript | `youtube-transcript-api` → `yt-dlp` → Groq Whisper (3-tier fallback) |
+| LLM | OpenRouter (configurable model) |
+| Database | SQLite (WAL mode) |
+| Email | Resend |
+| Admin reporting | gspread + Google Auth |
+| Monitoring | Sentry |
+| Deployment | DigitalOcean (Docker) |
+| Frontend | Single-page HTML/JS (`index.html`, `admin.html`) |
 
 ## API
 
 ```
-POST /api/enroll          — submit playlist URL + email, starts job
-GET  /api/job/{id}        — poll job progress
-GET  /api/job/{id}/stream — SSE stream for live progress
-GET  /api/courses         — list enrolled courses
-DELETE /api/courses/{id}  — cancel a course
-GET  /api/cron            — manual cron trigger (protected)
+POST /api/enroll                    — submit playlist URL + email, starts job
+GET  /api/job/{id}                  — poll job progress
+GET  /api/job/{id}/stream           — SSE stream for live progress
+GET  /api/courses                   — list enrolled courses (by email)
+DELETE /api/courses/{id}            — cancel a course
+GET  /api/courses/{id}/schedule     — full lesson schedule
+GET  /api/videos/{id}/emails        — emails generated for a video
+POST /api/emails/{id}/send-now      — manually trigger a specific email
+POST /api/courses/{id}/send-first   — trigger first email for a course
+GET  /api/cron                      — manual cron trigger (CRON_SECRET required)
 ```
+
+## Admin
+
+`/admin` — password-protected dashboard for monitoring enrollments, viewing job status, and manually triggering emails.
+
+## Transcript pipeline
+
+1. `youtube-transcript-api` — fast, uses `YOUTUBE_PROXY` if set
+2. `yt-dlp` — auto-generated captions fallback
+3. `Groq Whisper` — audio transcription; ffmpeg auto-chunks files >24MB
+
+## Processing architecture
+
+- **JIT**: enrollment processes 1 video immediately
+- `advance_processing` runs at 2am IST nightly to queue the next video per course
+- `send_emails` job runs every 5 minutes
+- `generate_reviews` runs hourly
 
 ## Setup
 
 ```bash
 pip install -r requirements.txt
-cp .env.example .env  # fill in your keys
+cp .env.example .env
 uvicorn main:app --reload
 ```
 
-Required env vars: `OPENAI_API_KEY` or `GROQ_API_KEY`, SMTP config, `CRON_SECRET`, `ADMIN_SECRET`.
+Required env vars:
 
-## Status
-
-Deployed and running. Used internally for converting long YouTube playlists (ML courses, lectures, tutorials) into structured email sequences.
+```
+OPENROUTER_API_KEY
+GROQ_API_KEY
+RESEND_API_KEY
+CRON_SECRET
+ADMIN_USER
+ADMIN_PASSWORD
+YOUTUBE_PROXY       # optional, WebShare format
+LLM_BUDGET_CAP      # optional, hard USD cap (default 1.0)
+SENTRY_DSN          # optional
+```
