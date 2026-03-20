@@ -12,6 +12,8 @@ Endpoints:
 """
 import json
 import asyncio
+import time
+import collections
 from datetime import datetime
 from typing import List, Optional
 
@@ -22,10 +24,22 @@ from pydantic import BaseModel, EmailStr
 
 import db
 from worker import start_worker
-from scheduler_jobs import send_due_emails, generate_upcoming, sync_to_sheets
+from scheduler_jobs import send_due_emails, generate_upcoming, sync_to_sheets, advance_processing
 from transcript import resolve_playlist
 from mailer import send_email as do_send_email, send_welcome_email
-from config import CRON_SECRET, ADMIN_SECRET, ADMIN_USER, ADMIN_PASSWORD
+from config import CRON_SECRET, ADMIN_SECRET, ADMIN_USER, ADMIN_PASSWORD, SENTRY_DSN
+
+import sentry_sdk
+from sentry_sdk.integrations.fastapi import FastApiIntegration
+from sentry_sdk.integrations.starlette import StarletteIntegration
+
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[StarletteIntegration(), FastApiIntegration()],
+        traces_sample_rate=0.05,
+        send_default_pii=False,
+    )
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -54,6 +68,7 @@ def startup():
     scheduler.add_job(send_due_emails,   "interval", minutes=5,  id="send_emails")
     scheduler.add_job(generate_upcoming, "interval", hours=1,    id="generate_upcoming")
     scheduler.add_job(sync_to_sheets,    "interval", hours=1,    id="sync_sheets")
+    scheduler.add_job(advance_processing, "cron",    hour=20, minute=30, id="advance_processing")  # 2am IST
     scheduler.start()
     print("[main] ✅ MindOS started")
 
@@ -86,7 +101,7 @@ class EnrollRequest(BaseModel):
     frequency: str  = "1x"
     tone: str       = "Casual"
     depth: str      = "Mix"
-    timezone: str   = "UTC"
+    timezone: str   = "Asia/Kolkata"
     active_days: List[str] = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]
 
 
@@ -112,11 +127,12 @@ def enroll(req: EnrollRequest):
     for i, v in enumerate(videos):
         db.insert_video(course_id, v["id"], v["title"], i)
 
-    # Enqueue background processing job
+    # Enqueue background processing job — JIT: process video 1 now, rest queued daily
     job_id = db.enqueue_job("process_playlist", {
         "user_id":      user_id,
         "course_id":    course_id,
         "playlist_url": req.playlist_url,
+        "max_videos":   1,
     })
 
     # Send welcome email (fire-and-forget — don't block response)
@@ -368,13 +384,31 @@ class AdminLoginRequest(BaseModel):
     password: str
 
 
+# ip -> deque of attempt timestamps
+_login_attempts: dict = collections.defaultdict(collections.deque)
+_LOGIN_MAX = 10       # attempts
+_LOGIN_WINDOW = 60    # seconds
+
+
 @app.post("/api/admin/login")
-def admin_login(req: AdminLoginRequest):
+def admin_login(req: AdminLoginRequest, request: Request):
+    ip = request.headers.get("X-Forwarded-For", request.client.host).split(",")[0].strip()
+    now = time.time()
+    attempts = _login_attempts[ip]
+    # drop attempts outside the window
+    while attempts and now - attempts[0] > _LOGIN_WINDOW:
+        attempts.popleft()
+    if len(attempts) >= _LOGIN_MAX:
+        raise HTTPException(429, "Too many login attempts. Try again in a minute.")
+    attempts.append(now)
+
     if not ADMIN_PASSWORD:
         raise HTTPException(503, "Admin password not configured")
     if req.username != ADMIN_USER or req.password != ADMIN_PASSWORD:
         raise HTTPException(401, "Invalid credentials")
     token = db.create_admin_session()
+    db.prune_old_sessions()
+    _login_attempts.pop(ip, None)  # clear on successful login
     return {"success": True, "token": token}
 
 
@@ -391,7 +425,8 @@ def admin_logout(request: Request):
 def serve_admin():
     try:
         with open("admin.html", "r") as f:
-            return f.read()
+            content = f.read()
+        return HTMLResponse(content=content, headers={"Cache-Control": "no-store, no-cache, must-revalidate"})
     except FileNotFoundError:
         return "<h1>admin.html not found</h1>"
 
@@ -404,7 +439,7 @@ def admin_data(request: Request):
     users   = db.get_all_users()
     courses = db.get_all_courses()
     stats   = db.get_email_stats()
-    jobs    = db.get_admin_jobs(limit=200)
+    jobs    = db.get_admin_jobs(limit=20)
     return {
         "stats": {
             "total_users":        len(users),
@@ -427,6 +462,15 @@ def admin_data(request: Request):
 def admin_emails(request: Request, status: str = None, limit: int = 200, offset: int = 0):
     _check_admin(request)
     return {"emails": db.get_all_emails(limit=limit, offset=offset, status_filter=status)}
+
+
+@app.get("/api/admin/emails/{email_id}")
+def admin_get_email(email_id: str, request: Request):
+    _check_admin(request)
+    row = db.get_email_for_send(email_id)
+    if not row:
+        raise HTTPException(404, "Email not found")
+    return dict(row)
 
 
 @app.get("/api/admin/system")
@@ -552,6 +596,16 @@ def admin_run_cron(request: Request):
         from scheduler_jobs import send_due_emails, generate_upcoming, sync_to_sheets
         send_due_emails()
         generate_upcoming()
+        return {"success": True, "time": datetime.utcnow().isoformat()}
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+
+@app.post("/api/admin/cron/advance")
+def admin_run_advance(request: Request):
+    _check_admin(request)
+    try:
+        advance_processing()
         return {"success": True, "time": datetime.utcnow().isoformat()}
     except Exception as e:
         raise HTTPException(500, str(e))
@@ -703,6 +757,64 @@ def admin_edit_transcript(video_id: str, body: TranscriptBody, request: Request)
         raise HTTPException(404, "Video not found")
     db.add_audit("transcript_edit", "video", video_id)
     return {"success": True}
+
+
+class IngestByYoutubeIdBody(BaseModel):
+    youtube_id: str
+    text: str
+    password: str
+
+@app.post("/api/admin/ingest-by-youtube-id")
+def admin_ingest_by_youtube_id(body: IngestByYoutubeIdBody):
+    """Bookmarklet endpoint: accepts youtube_id + transcript text + admin password."""
+    if not ADMIN_PASSWORD or body.password != ADMIN_PASSWORD:
+        raise HTTPException(401, "Unauthorized")
+    text = body.text.strip()
+    if len(text) < 100:
+        raise HTTPException(400, "Transcript too short")
+    with db.get_db() as conn:
+        row = conn.execute(
+            "SELECT v.id, v.course_id, c.user_id, c.playlist_url FROM videos v JOIN courses c ON v.course_id = c.id WHERE v.youtube_id=? ORDER BY v.created_at DESC LIMIT 1",
+            (body.youtube_id,)
+        ).fetchone()
+    if not row:
+        raise HTTPException(404, f"No video found with youtube_id={body.youtube_id}")
+    video_id = row["id"]
+    db.update_video_transcript(video_id, text)
+    db.retry_video(video_id)
+    job_id = db.enqueue_job("process_playlist", {
+        "user_id": row["user_id"],
+        "course_id": row["course_id"],
+        "playlist_url": row["playlist_url"],
+    })
+    db.add_audit("transcript_injected_bookmarklet", "video", video_id, f"yt={body.youtube_id} chars={len(text)}")
+    return {"success": True, "job_id": job_id, "video_id": video_id}
+
+
+@app.post("/api/admin/videos/{video_id}/inject-transcript")
+def admin_inject_transcript(video_id: str, body: TranscriptBody, request: Request):
+    """Browser-fetched transcript: save it, reset video to pending, enqueue processing."""
+    _check_admin(request)
+    text = body.text.strip()
+    if len(text) < 100:
+        raise HTTPException(400, "Transcript too short")
+    if not db.update_video_transcript(video_id, text):
+        raise HTTPException(404, "Video not found")
+    db.retry_video(video_id)
+    with db.get_db() as conn:
+        row = conn.execute(
+            "SELECT v.course_id, c.user_id, c.playlist_url FROM videos v JOIN courses c ON v.course_id = c.id WHERE v.id=?",
+            (video_id,)
+        ).fetchone()
+    if not row:
+        raise HTTPException(404, "Video not found")
+    job_id = db.enqueue_job("process_playlist", {
+        "user_id": row["user_id"],
+        "course_id": row["course_id"],
+        "playlist_url": row["playlist_url"],
+    })
+    db.add_audit("transcript_injected", "video", video_id, f"chars={len(text)}")
+    return {"success": True, "job_id": job_id}
 
 
 # ── Email controls ────────────────────────────────────────────────────────

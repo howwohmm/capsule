@@ -7,7 +7,7 @@ Jobs:
   every 1 hour → sync_to_sheets()          push stats to Google Sheets
 """
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 import db
 from mailer import send_email
@@ -19,7 +19,8 @@ from llm import generate_review, generate_synthesis, render_html
 # ---------------------------------------------------------------------------
 
 def send_due_emails():
-    now_str = datetime.utcnow().strftime("%H:%M UTC")
+    import pytz as _pytz
+    now_str = datetime.now(_pytz.timezone("Asia/Kolkata")).strftime("%H:%M IST")
 
     # Regular course emails
     due = db.get_due_emails(limit=50)
@@ -101,7 +102,63 @@ def generate_upcoming():
 
 
 # ---------------------------------------------------------------------------
-# 3. Sync to Google Sheets (every 1 hour)
+# 3. Advance JIT processing (daily at 2am IST = 20:30 UTC)
+# ---------------------------------------------------------------------------
+
+def advance_processing():
+    """
+    Just-in-time video processing: for each active course, ensure the next
+    video is processed 1 day before it's due. Keeps resource usage flat
+    regardless of playlist size — only processes what's actually needed.
+    """
+    now = datetime.utcnow()
+
+    with db.get_db() as conn:
+        courses = conn.execute(
+            "SELECT * FROM courses WHERE status='active'"
+        ).fetchall()
+
+    for course_row in courses:
+        course = dict(course_row)
+        course_id = course["id"]
+
+        with db.get_db() as conn:
+            total = conn.execute(
+                "SELECT COUNT(*) FROM videos WHERE course_id=?", (course_id,)
+            ).fetchone()[0]
+            done = conn.execute(
+                "SELECT COUNT(*) FROM videos WHERE course_id=? AND status IN ('ready','skipped')",
+                (course_id,)
+            ).fetchone()[0]
+
+        if done >= total:
+            continue  # course complete
+
+        # Calculate how many videos should be ready by now + 1 day buffer
+        # (1 video per active day at minimum, regardless of email frequency)
+        try:
+            created_at = datetime.fromisoformat(course["created_at"].replace("Z", ""))
+        except Exception:
+            continue
+        days_elapsed = max(0, (now - created_at).days)
+        target = min(days_elapsed + 2, total)  # +2 = today + 1 day buffer
+
+        if done >= target:
+            continue  # already ahead of schedule
+
+        videos_needed = target - done
+        print(f"[advance] course {course_id}: {done}/{total} done, processing {videos_needed} more")
+
+        db.enqueue_job("process_playlist", {
+            "user_id":      course["user_id"],
+            "course_id":    course_id,
+            "playlist_url": course["playlist_url"],
+            "max_videos":   videos_needed,
+        })
+
+
+# ---------------------------------------------------------------------------
+# 4. Sync to Google Sheets (every 1 hour)
 # ---------------------------------------------------------------------------
 
 def sync_to_sheets():
@@ -163,7 +220,8 @@ def sync_to_sheets():
             ]
         )
 
-        print(f"[sheets] ✅ synced at {datetime.utcnow().strftime('%H:%M UTC')}")
+        import pytz as _pytz2
+        print(f"[sheets] ✅ synced at {datetime.now(_pytz2.timezone('Asia/Kolkata')).strftime('%H:%M IST')}")
 
     except Exception as e:
         print(f"[sheets] ❌ sync failed: {e}")

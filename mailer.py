@@ -9,7 +9,7 @@ from email.mime.text import MIMEText
 
 import requests
 
-from config import RESEND_API_KEY, GMAIL_USER, GMAIL_APP_PASSWORD, FROM_EMAIL
+from config import RESEND_API_KEY, GMAIL_USER, GMAIL_APP_PASSWORD, FROM_EMAIL, ALERT_EMAIL
 
 
 def send_email(to: str, subject: str, html_body: str) -> bool:
@@ -60,6 +60,23 @@ def _send_gmail(to: str, subject: str, html_body: str) -> bool:
     except Exception as e:
         print(f"   [mailer] ❌ Gmail failed to send to {to}: {e}")
         return False
+
+
+def send_alert(subject: str, body: str) -> bool:
+    """Send a plain-text ops alert to ALERT_EMAIL. No-ops if ALERT_EMAIL is not set."""
+    if not ALERT_EMAIL:
+        print(f"   [alert] ALERT_EMAIL not set — skipping: {subject}")
+        return False
+    html = f"""<!DOCTYPE html><html><body style="font-family:monospace;font-size:14px;
+color:#111;background:#fff;padding:32px;max-width:600px;">
+<p style="font-weight:bold;font-size:16px;margin:0 0 16px;">CAPSULE ALERT</p>
+<p style="white-space:pre-wrap;margin:0;">{body}</p>
+<p style="margin:24px 0 0;color:#888;font-size:12px;">capsule.ohm.quest — automated alert</p>
+</body></html>"""
+    ok = send_email(ALERT_EMAIL, f"[Capsule] {subject}", html)
+    if ok:
+        print(f"   [alert] sent: {subject}")
+    return ok
 
 
 def send_welcome_email(to: str, course_title: str, total_videos: int,
