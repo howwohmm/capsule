@@ -54,5 +54,12 @@ YOUTUBE_COOKIES_FILE = os.getenv("YOUTUBE_COOKIES_FILE", "/app/youtube_cookies.t
 
 SENTRY_DSN = os.getenv("SENTRY_DSN", "")
 
+# CORS allowed origins (comma-separated in env)
+CORS_ORIGINS = [
+    o.strip() for o in
+    os.getenv("CORS_ORIGINS", "https://capsule.ohm.quest").split(",")
+    if o.strip()
+]
+
 # How many videos to process in parallel (keep low to respect rate limits)
 WORKER_CONCURRENCY = 2

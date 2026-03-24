@@ -25,23 +25,23 @@ uvicorn main:app --reload
 
 # Deploy (IMPORTANT: /app is baked into Docker image, NOT volume-mounted)
 # Step 1: SCP to host /app (for backup/git tracking)
-sshpass -p 'helloCapsule@123ohm' scp <files> root@157.245.103.89:/app/
+scp <files> root@157.245.103.89:/app/
 # Step 2: docker cp into the running container (this is what actually updates code)
-sshpass -p 'helloCapsule@123ohm' ssh root@157.245.103.89 'docker cp /app/<file> app_capsule_1:/app/<file>'
+ssh root@157.245.103.89 'docker cp /app/<file> app_capsule_1:/app/<file>'
 # Step 3: restart
-sshpass -p 'helloCapsule@123ohm' ssh root@157.245.103.89 'docker restart app_capsule_1'
+ssh root@157.245.103.89 'docker restart app_capsule_1'
 
 # One-liner deploy helper (replace file list as needed):
-# sshpass -p 'helloCapsule@123ohm' ssh root@157.245.103.89 'docker cp /app/main.py app_capsule_1:/app/main.py && docker cp /app/db.py app_capsule_1:/app/db.py && docker restart app_capsule_1'
+# ssh root@157.245.103.89 'docker cp /app/main.py app_capsule_1:/app/main.py && docker cp /app/db.py app_capsule_1:/app/db.py && docker restart app_capsule_1'
 
 # Rebuild Docker (e.g. after Dockerfile change)
-sshpass -p 'helloCapsule@123ohm' ssh root@157.245.103.89 'docker stop app_capsule_1 && docker rm app_capsule_1 && cd /app && docker-compose up --build -d'
+ssh root@157.245.103.89 'docker stop app_capsule_1 && docker rm app_capsule_1 && cd /app && docker-compose up --build -d'
 
 # Logs
-sshpass -p 'helloCapsule@123ohm' ssh root@157.245.103.89 'docker logs app_capsule_1 --tail 50'
+ssh root@157.245.103.89 'docker logs app_capsule_1 --tail 50'
 
-# SSH in
-sshpass -p 'helloCapsule@123ohm' ssh root@157.245.103.89
+# SSH in — <ssh key auth>
+ssh root@157.245.103.89
 ```
 
 ## Transcript Pipeline (3 tiers)
@@ -53,13 +53,13 @@ sshpass -p 'helloCapsule@123ohm' ssh root@157.245.103.89
 - `OPENROUTER_API_KEY` — LLM. Put $10 credit for reliability (free = 50 req/day)
 - `GROQ_API_KEY` — Whisper transcription (28,800s/day free)
 - `RESEND_API_KEY` — email delivery
-- `YOUTUBE_PROXY` — WebShare proxy (`http://kpnqfihi:2yf51qhkzk9r@p.webshare.io:80`)
+- `YOUTUBE_PROXY` — WebShare proxy <see .env on droplet>
 - `LLM_BUDGET_CAP` — hard stop in USD (default 1.0)
 - `ADMIN_USER` / `ADMIN_PASSWORD` — admin dashboard login
 
 ## Admin
 - URL: `http://157.245.103.89/admin`
-- Login: ohm / hellocapsule
+- Login: <see .env on droplet>
 
 ## Architecture Notes
 - **JIT processing**: enrollment processes 1 video only. `advance_processing` runs at 2am IST daily to queue next video per course.
