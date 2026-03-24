@@ -1903,7 +1903,8 @@ async function viewVideoTranscript(videoId, title, email) {
 async function cancelCourse(id) {
   if (!confirm('Cancel this course? Scheduled emails will be stopped.')) return;
   try {
-    await fetch('/api/courses/' + id, { method: 'DELETE' });
+    const email = document.getElementById('courses-email').value.trim();
+    await fetch('/api/courses/' + id + '?email=' + encodeURIComponent(email), { method: 'DELETE' });
     toast('Course cancelled.');
     _loadCourses();
   } catch {

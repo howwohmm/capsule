@@ -12,9 +12,10 @@ Endpoints:
 """
 import json
 import asyncio
+import hmac
 import time
 import collections
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException, Request
@@ -27,7 +28,7 @@ from worker import start_worker
 from scheduler_jobs import send_due_emails, generate_upcoming, sync_to_sheets, advance_processing
 from transcript import resolve_playlist
 from mailer import send_email as do_send_email, send_welcome_email
-from config import CRON_SECRET, ADMIN_SECRET, ADMIN_USER, ADMIN_PASSWORD, SENTRY_DSN
+from config import CRON_SECRET, ADMIN_SECRET, ADMIN_USER, ADMIN_PASSWORD, SENTRY_DSN, CORS_ORIGINS
 
 import sentry_sdk
 from sentry_sdk.integrations.fastapi import FastApiIntegration
@@ -47,11 +48,38 @@ app = FastAPI(title="Capsule")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ---------------------------------------------------------------------------
+# In-memory rate limiting
+# ---------------------------------------------------------------------------
+
+# email -> deque of timestamps
+_otp_rate: dict = collections.defaultdict(collections.deque)
+_enroll_rate: dict = collections.defaultdict(collections.deque)
+
+
+_MAX_RATE_KEYS = 10000  # prevent memory leak from enumeration attacks
+
+def _check_rate(store: dict, key: str, max_requests: int, window_seconds: int):
+    """Raise 429 if key exceeds max_requests within window_seconds."""
+    now = time.time()
+    # Evict stale keys if store grows too large
+    if len(store) > _MAX_RATE_KEYS:
+        stale = [k for k, v in store.items() if not v or now - v[-1] > window_seconds]
+        for k in stale:
+            del store[k]
+    q = store[key]
+    while q and now - q[0] > window_seconds:
+        q.popleft()
+    if len(q) >= max_requests:
+        raise HTTPException(429, "Too many requests — try again later")
+    q.append(now)
 
 
 # ---------------------------------------------------------------------------
@@ -105,8 +133,22 @@ class EnrollRequest(BaseModel):
     active_days: List[str] = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]
 
 
+_ALLOWED_YT_PREFIXES = (
+    "https://youtube.com/",
+    "https://www.youtube.com/",
+    "https://youtu.be/",
+)
+
+
 @app.post("/api/enroll")
 def enroll(req: EnrollRequest):
+    # Rate limit: 5 per email per hour
+    _check_rate(_enroll_rate, req.email.strip().lower(), 5, 3600)
+
+    # Validate playlist URL
+    if not req.playlist_url.startswith(_ALLOWED_YT_PREFIXES):
+        raise HTTPException(400, "Invalid URL — only YouTube playlist URLs are accepted")
+
     # Resolve playlist first to validate URL and get video count
     playlist_title, videos = resolve_playlist(req.playlist_url)
     if not videos:
@@ -218,7 +260,17 @@ def get_courses(email: str):
 
 
 @app.delete("/api/courses/{course_id}")
-def cancel_course(course_id: str):
+def cancel_course(course_id: str, email: str):
+    if not email:
+        raise HTTPException(400, "Email required")
+    # Verify ownership
+    with db.get_db() as conn:
+        row = conn.execute(
+            "SELECT c.id FROM courses c JOIN users u ON c.user_id = u.id WHERE c.id=? AND u.email=?",
+            (course_id, email)
+        ).fetchone()
+    if not row:
+        raise HTTPException(403, "Access denied")
     ok = db.cancel_course(course_id)
     if not ok:
         raise HTTPException(404, "Course not found or already cancelled")
@@ -257,8 +309,17 @@ def send_email_now(email_id: str, body: SendNowBody):
     row = db.get_email_for_send(email_id)
     if not row:
         raise HTTPException(404, "Email not found")
+    # Verify the requesting user owns this email
+    if row.get("user_email") != body.email:
+        raise HTTPException(403, "Access denied")
     if row["status"] == "sent":
         return {"success": True, "already_sent": True}
+    # Guard: don't allow sending emails scheduled >48h in the future
+    if row.get("scheduled_at"):
+        sched = datetime.fromisoformat(row["scheduled_at"])
+        if sched > datetime.utcnow() + timedelta(hours=48):
+            print(f"[send-now] rejected email {email_id}: scheduled_at {row['scheduled_at']} is >48h in the future")
+            raise HTTPException(400, "Email is scheduled too far in the future — wait until closer to its delivery date")
     if not row.get("html_body"):
         raise HTTPException(400, "Email not yet generated — check back shortly")
     ok = do_send_email(body.email, row["subject"] or "Your MindOS lesson", row["html_body"])
@@ -270,9 +331,23 @@ def send_email_now(email_id: str, body: SendNowBody):
 
 @app.post("/api/courses/{course_id}/send-first")
 def send_first_email(course_id: str, body: SendNowBody):
+    # Verify the requesting user owns this course
+    with db.get_db() as conn:
+        owner = conn.execute(
+            "SELECT c.id FROM courses c JOIN users u ON c.user_id = u.id WHERE c.id=? AND u.email=?",
+            (course_id, body.email)
+        ).fetchone()
+    if not owner:
+        raise HTTPException(403, "Access denied")
     row = db.get_first_pending_email_for_course(course_id)
     if not row:
         raise HTTPException(404, "not_ready")
+    # Guard: don't allow sending emails scheduled >48h in the future
+    if row.get("scheduled_at"):
+        sched = datetime.fromisoformat(row["scheduled_at"])
+        if sched > datetime.utcnow() + timedelta(hours=48):
+            print(f"[send-first] rejected email {row['id']}: scheduled_at {row['scheduled_at']} is >48h in the future")
+            raise HTTPException(400, "Email is scheduled too far in the future — wait until closer to its delivery date")
     ok = do_send_email(body.email, row["subject"] or "Your first MindOS lesson", row["html_body"])
     if ok:
         db.mark_email_sent(row["id"])
@@ -325,6 +400,8 @@ def send_otp(req: OtpRequest):
     email = req.email.strip()
     if not email or "@" not in email:
         raise HTTPException(400, "Valid email required")
+    # Rate limit: 3 per email per 10 minutes
+    _check_rate(_otp_rate, email.lower(), 3, 600)
     code = db.create_otp(email)
     ok = do_send_email(email, "Your MindOS verification code", _otp_email_html(code, email))
     if not ok:
@@ -404,7 +481,7 @@ def admin_login(req: AdminLoginRequest, request: Request):
 
     if not ADMIN_PASSWORD:
         raise HTTPException(503, "Admin password not configured")
-    if req.username != ADMIN_USER or req.password != ADMIN_PASSWORD:
+    if req.username != ADMIN_USER or not hmac.compare_digest(req.password, ADMIN_PASSWORD):
         raise HTTPException(401, "Invalid credentials")
     token = db.create_admin_session()
     db.prune_old_sessions()
@@ -767,7 +844,7 @@ class IngestByYoutubeIdBody(BaseModel):
 @app.post("/api/admin/ingest-by-youtube-id")
 def admin_ingest_by_youtube_id(body: IngestByYoutubeIdBody):
     """Bookmarklet endpoint: accepts youtube_id + transcript text + admin password."""
-    if not ADMIN_PASSWORD or body.password != ADMIN_PASSWORD:
+    if not ADMIN_PASSWORD or not hmac.compare_digest(body.password, ADMIN_PASSWORD):
         raise HTTPException(401, "Unauthorized")
     text = body.text.strip()
     if len(text) < 100:

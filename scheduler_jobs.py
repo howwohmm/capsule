@@ -22,6 +22,9 @@ def send_due_emails():
     import pytz as _pytz
     now_str = datetime.now(_pytz.timezone("Asia/Kolkata")).strftime("%H:%M IST")
 
+    # Reschedule any emails that are >48h stale before sending
+    db.reschedule_stale_emails()
+
     # Regular course emails
     due = db.get_due_emails(limit=50)
     if due:

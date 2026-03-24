@@ -386,6 +386,17 @@ SLOTS_BY_FREQUENCY = {
 }
 
 
+def _next_active_day(from_dt: datetime, active_days: list) -> datetime:
+    """Return the next active day strictly after from_dt (midnight of that day)."""
+    current = from_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+    for _ in range(8):  # at most 7 days ahead
+        current += timedelta(days=1)
+        if current.strftime("%a") in active_days:
+            return current
+    # fallback: tomorrow
+    return from_dt.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+
+
 def _delivery_date(course_created_at: str, position: int, active_days: list, user_timezone: str) -> datetime:
     """
     Calculate UTC datetime of the delivery day for video at `position` (0-indexed).
@@ -416,6 +427,11 @@ def schedule_video_emails(
     """Insert all email rows for a video with correct scheduled_at timestamps."""
     delivery_day = _delivery_date(course_created_at, position, active_days, user_timezone)
     tz = pytz.timezone(user_timezone)
+
+    # If calculated delivery day is in the past, anchor to next active day from today
+    now_local = datetime.now(tz)
+    if delivery_day < now_local:
+        delivery_day = _next_active_day(now_local, active_days)
     slots = SLOTS_BY_FREQUENCY.get(frequency, ["morning"])
 
     with get_db() as conn:
@@ -481,16 +497,53 @@ def schedule_synthesis(
 # ---------------------------------------------------------------------------
 
 def get_due_emails(limit: int = 50) -> list:
+    """Return due emails, max 1 per user per run (earliest first)."""
     now = datetime.utcnow().isoformat()
     with get_db() as conn:
         rows = conn.execute(
             """SELECT e.*, u.email as user_email FROM emails e
                JOIN users u ON e.user_id = u.id
-               WHERE e.scheduled_at <= ? AND e.status = 'pending'
+               WHERE e.id IN (
+                   SELECT id FROM (
+                       SELECT id, user_id, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY scheduled_at) as rn
+                       FROM emails
+                       WHERE scheduled_at <= ? AND status = 'pending'
+                   ) WHERE rn = 1
+               )
                ORDER BY e.scheduled_at LIMIT ?""",
             (now, limit)
         ).fetchall()
         return [dict(r) for r in rows]
+
+
+def reschedule_stale_emails():
+    """Reschedule emails whose scheduled_at is >48h in the past to tomorrow at the same slot hour."""
+    cutoff = (datetime.utcnow() - timedelta(hours=48)).isoformat()
+    with get_db() as conn:
+        stale = conn.execute(
+            """SELECT e.id, e.scheduled_at, e.slot, e.user_id, u.timezone
+               FROM emails e JOIN users u ON e.user_id = u.id
+               WHERE e.scheduled_at < ? AND e.status = 'pending'""",
+            (cutoff,)
+        ).fetchall()
+        if not stale:
+            return
+        print(f"[scheduler] rescheduling {len(stale)} stale email(s)")
+        for row in stale:
+            try:
+                tz = pytz.timezone(row["timezone"])
+                slot_hour = SLOT_HOURS.get(row["slot"], 8)
+                tomorrow_local = datetime.now(tz).replace(
+                    hour=slot_hour, minute=0, second=0, microsecond=0
+                ) + timedelta(days=1)
+                new_utc = tomorrow_local.astimezone(pytz.utc).isoformat()
+                conn.execute(
+                    "UPDATE emails SET scheduled_at = ? WHERE id = ?",
+                    (new_utc, row["id"])
+                )
+                print(f"[scheduler]   stale email {row['id']} rescheduled to {new_utc}")
+            except Exception as e:
+                print(f"[scheduler]   failed to reschedule {row['id']}: {e}")
 
 
 def get_due_reviews(limit: int = 50) -> list:
@@ -814,10 +867,10 @@ def get_admin_jobs(limit: int = 100) -> list:
 # OTP verification
 # ---------------------------------------------------------------------------
 
-import random as _random
+import secrets as _secrets
 
 def create_otp(email: str) -> str:
-    code = f"{_random.randint(100000, 999999)}"
+    code = f"{_secrets.randbelow(900000) + 100000}"
     otp_id = uid()
     with get_db() as conn:
         conn.execute("DELETE FROM otps WHERE email=?", (email,))
