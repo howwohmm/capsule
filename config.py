@@ -28,7 +28,7 @@ LLM_MODEL_FALLBACKS = [
     m.strip() for m in
     os.getenv(
         "LLM_MODEL_FALLBACKS",
-        "google/gemini-2.0-flash-lite,deepseek/deepseek-chat"
+        "google/gemini-2.0-flash-001:free,deepseek/deepseek-chat:free"
     ).split(",")
     if m.strip()
 ]
