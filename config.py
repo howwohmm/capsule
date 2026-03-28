@@ -18,7 +18,9 @@ DATABASE_PATH      = os.getenv("DATABASE_PATH", "mindos.db")
 CRON_SECRET        = os.getenv("CRON_SECRET", "")
 ADMIN_SECRET       = os.getenv("ADMIN_SECRET", "")
 ADMIN_USER         = os.getenv("ADMIN_USER", "admin")
+# ADMIN_PASSWORD legacy plaintext removed from active auth flow; keep only for backward compatibility in env migration scripts
 ADMIN_PASSWORD     = os.getenv("ADMIN_PASSWORD", "")
+ADMIN_PASSWORD_HASH = os.getenv("ADMIN_PASSWORD_HASH", "")  # bcrypt hash
 ALERT_EMAIL        = os.getenv("ALERT_EMAIL", "")   # where to send error alerts (set to your email)
 BASE_URL           = os.getenv("BASE_URL", "http://localhost:8000")
 

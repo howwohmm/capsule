@@ -15,6 +15,7 @@ import asyncio
 import hmac
 import time
 import collections
+import bcrypt
 from datetime import datetime, timedelta
 from typing import List, Optional
 
@@ -28,7 +29,7 @@ from worker import start_worker
 from scheduler_jobs import send_due_emails, generate_upcoming, sync_to_sheets, advance_processing
 from transcript import resolve_playlist
 from mailer import send_email as do_send_email, send_welcome_email
-from config import CRON_SECRET, ADMIN_SECRET, ADMIN_USER, ADMIN_PASSWORD, SENTRY_DSN, CORS_ORIGINS
+from config import CRON_SECRET, ADMIN_SECRET, ADMIN_USER, ADMIN_PASSWORD, ADMIN_PASSWORD_HASH, SENTRY_DSN, CORS_ORIGINS
 
 import sentry_sdk
 from sentry_sdk.integrations.fastapi import FastApiIntegration
@@ -447,11 +448,24 @@ def _get_admin_token(request: Request) -> str:
 
 def _check_admin(request: Request):
     token = _get_admin_token(request)
-    if ADMIN_SECRET and token == ADMIN_SECRET:
+    if ADMIN_SECRET and hmac.compare_digest(token, ADMIN_SECRET):
         return
     if db.validate_admin_session(token):
         return
     raise HTTPException(401, "Unauthorized")
+
+
+def _verify_admin_password(candidate: str) -> bool:
+    if not candidate:
+        return False
+
+    if not ADMIN_PASSWORD_HASH:
+        return False
+
+    try:
+        return bcrypt.checkpw(candidate.encode("utf-8"), ADMIN_PASSWORD_HASH.encode("utf-8"))
+    except (ValueError, TypeError):
+        return False
 
 
 # ── Auth ──────────────────────────────────────────────────────────────────
@@ -479,9 +493,7 @@ def admin_login(req: AdminLoginRequest, request: Request):
         raise HTTPException(429, "Too many login attempts. Try again in a minute.")
     attempts.append(now)
 
-    if not ADMIN_PASSWORD:
-        raise HTTPException(503, "Admin password not configured")
-    if req.username != ADMIN_USER or not hmac.compare_digest(req.password, ADMIN_PASSWORD):
+    if req.username != ADMIN_USER or not _verify_admin_password(req.password):
         raise HTTPException(401, "Invalid credentials")
     token = db.create_admin_session()
     db.prune_old_sessions()
@@ -839,12 +851,14 @@ def admin_edit_transcript(video_id: str, body: TranscriptBody, request: Request)
 class IngestByYoutubeIdBody(BaseModel):
     youtube_id: str
     text: str
-    password: str
+    token: Optional[str] = None
 
 @app.post("/api/admin/ingest-by-youtube-id")
 def admin_ingest_by_youtube_id(body: IngestByYoutubeIdBody):
-    """Bookmarklet endpoint: accepts youtube_id + transcript text + admin password."""
-    if not ADMIN_PASSWORD or not hmac.compare_digest(body.password, ADMIN_PASSWORD):
+    """Bookmarklet endpoint: accepts youtube_id + transcript text + admin token."""
+    if not ADMIN_SECRET:
+        raise HTTPException(503, "Admin token is not configured")
+    if not body.token or not hmac.compare_digest(body.token, ADMIN_SECRET):
         raise HTTPException(401, "Unauthorized")
     text = body.text.strip()
     if len(text) < 100:
