@@ -459,13 +459,17 @@ def _verify_admin_password(candidate: str) -> bool:
     if not candidate:
         return False
 
-    if not ADMIN_PASSWORD_HASH:
-        return False
+    if ADMIN_PASSWORD_HASH:
+        try:
+            return bcrypt.checkpw(candidate.encode("utf-8"), ADMIN_PASSWORD_HASH.encode("utf-8"))
+        except (ValueError, TypeError):
+            return False
 
-    try:
-        return bcrypt.checkpw(candidate.encode("utf-8"), ADMIN_PASSWORD_HASH.encode("utf-8"))
-    except (ValueError, TypeError):
-        return False
+    # fallback if ADMIN_PASSWORD_HASH is not set
+    if ADMIN_PASSWORD:
+        return hmac.compare_digest(candidate, ADMIN_PASSWORD)
+
+    return False
 
 
 # ── Auth ──────────────────────────────────────────────────────────────────
@@ -493,7 +497,7 @@ def admin_login(req: AdminLoginRequest, request: Request):
         raise HTTPException(429, "Too many login attempts. Try again in a minute.")
     attempts.append(now)
 
-    if req.username != ADMIN_USER or not _verify_admin_password(req.password):
+    if not hmac.compare_digest(req.username, ADMIN_USER) or not _verify_admin_password(req.password):
         raise HTTPException(401, "Invalid credentials")
     token = db.create_admin_session()
     db.prune_old_sessions()
