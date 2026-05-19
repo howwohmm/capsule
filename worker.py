@@ -11,7 +11,7 @@ Flow:
 import json
 import time
 import threading
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 import uuid
@@ -59,7 +59,7 @@ def process_playlist_job(job: dict):
     # Get course creation time (used as schedule anchor)
     with db.get_db() as conn:
         course_row = conn.execute("SELECT * FROM courses WHERE id=?", (course_id,)).fetchone()
-        course_created_at = dict(course_row)["created_at"] if course_row else datetime.utcnow().isoformat()
+        course_created_at = dict(course_row)["created_at"] if course_row else datetime.now(timezone.utc).isoformat()
 
     db.update_job(job_id, 5, "Resolving playlist...")
 
