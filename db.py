@@ -6,7 +6,7 @@ import sqlite3
 import uuid
 import json
 from contextlib import contextmanager
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import pytz
@@ -43,7 +43,7 @@ def uid() -> str:
 
 
 def now_utc() -> str:
-    return datetime.utcnow().isoformat()
+    return datetime.now(timezone.utc).isoformat()
 
 
 # ---------------------------------------------------------------------------
@@ -498,7 +498,7 @@ def schedule_synthesis(
 
 def get_due_emails(limit: int = 50) -> list:
     """Return due emails, max 1 per user per run (earliest first)."""
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with get_db() as conn:
         rows = conn.execute(
             """SELECT e.*, u.email as user_email FROM emails e
@@ -518,7 +518,7 @@ def get_due_emails(limit: int = 50) -> list:
 
 def reschedule_stale_emails():
     """Reschedule emails whose scheduled_at is >48h in the past to tomorrow at the same slot hour."""
-    cutoff = (datetime.utcnow() - timedelta(hours=48)).isoformat()
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=48)).isoformat()
     with get_db() as conn:
         stale = conn.execute(
             """SELECT e.id, e.scheduled_at, e.slot, e.user_id, u.timezone
@@ -547,7 +547,7 @@ def reschedule_stale_emails():
 
 
 def get_due_reviews(limit: int = 50) -> list:
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with get_db() as conn:
         rows = conn.execute(
             """SELECT r.*, u.email as user_email, v.title as video_title
@@ -562,7 +562,7 @@ def get_due_reviews(limit: int = 50) -> list:
 
 
 def get_due_synthesis(limit: int = 20) -> list:
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with get_db() as conn:
         rows = conn.execute(
             """SELECT s.*, u.email as user_email FROM synthesis s
@@ -600,8 +600,8 @@ def mark_synthesis_sent(synthesis_id: str):
 
 def get_pending_reviews_for_generation(limit: int = 20) -> list:
     """Reviews that are due within the next 24h but not yet generated."""
-    cutoff = (datetime.utcnow() + timedelta(hours=24)).isoformat()
-    now = datetime.utcnow().isoformat()
+    cutoff = (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with get_db() as conn:
         rows = conn.execute(
             """SELECT r.*, v.title as video_title, v.id as vid_id,
@@ -644,8 +644,8 @@ def update_synthesis_content(synthesis_id: str, subject: str, html_body: str):
 
 
 def get_pending_synthesis_for_generation(limit: int = 10) -> list:
-    cutoff = (datetime.utcnow() + timedelta(hours=24)).isoformat()
-    now = datetime.utcnow().isoformat()
+    cutoff = (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with get_db() as conn:
         rows = conn.execute(
             """SELECT s.*, u.tone, u.depth FROM synthesis s
@@ -684,7 +684,7 @@ def enqueue_job(job_type: str, payload: dict) -> str:
 def claim_next_job() -> Optional[dict]:
     with get_db() as conn:
         # Reset jobs stuck in 'processing' for >30 minutes back to 'pending'
-        timeout_cutoff = (datetime.utcnow() - timedelta(minutes=30)).isoformat()
+        timeout_cutoff = (datetime.now(timezone.utc) - timedelta(minutes=30)).isoformat()
         conn.execute(
             """UPDATE jobs SET status='pending', message='Requeued after timeout', updated_at=?
                WHERE status='processing' AND updated_at < ?""",
@@ -821,7 +821,7 @@ def get_email_stats() -> dict:
     with get_db() as conn:
         total = conn.execute("SELECT COUNT(*) as n FROM emails").fetchone()["n"]
         sent  = conn.execute("SELECT COUNT(*) as n FROM emails WHERE status='sent'").fetchone()["n"]
-        today = datetime.utcnow().date().isoformat()
+        today = datetime.now(timezone.utc).date().isoformat()
         sent_today = conn.execute(
             "SELECT COUNT(*) as n FROM emails WHERE status='sent' AND sent_at LIKE ?",
             (f"{today}%",)
@@ -889,7 +889,7 @@ import secrets as _secrets
 
 def create_admin_session() -> str:
     token = _secrets.token_urlsafe(32)
-    expires = (datetime.utcnow() + timedelta(hours=24)).isoformat()
+    expires = (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat()
     with get_db() as conn:
         # Clean expired sessions
         conn.execute("DELETE FROM admin_sessions WHERE expires_at < ?", (now_utc(),))
@@ -1445,7 +1445,7 @@ def get_heartbeat(days: int = 14) -> list:
 
 def get_user_health() -> list:
     """Per-user health classification: active / at_risk / ghost / new."""
-    cutoff_7d = (datetime.utcnow() - timedelta(days=7)).isoformat()
+    cutoff_7d = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
     with get_db() as conn:
         rows = conn.execute("""
             SELECT u.id, u.email, u.created_at,
@@ -1482,7 +1482,7 @@ def get_user_health() -> list:
 
 def get_stale_jobs() -> list:
     """Jobs stuck in 'processing' for more than 10 minutes."""
-    cutoff = (datetime.utcnow() - timedelta(minutes=10)).isoformat()
+    cutoff = (datetime.now(timezone.utc) - timedelta(minutes=10)).isoformat()
     with get_db() as conn:
         rows = conn.execute("""
             SELECT * FROM jobs

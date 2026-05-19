@@ -15,7 +15,7 @@ import asyncio
 import hmac
 import time
 import collections
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException, Request
@@ -317,7 +317,7 @@ def send_email_now(email_id: str, body: SendNowBody):
     # Guard: don't allow sending emails scheduled >48h in the future
     if row.get("scheduled_at"):
         sched = datetime.fromisoformat(row["scheduled_at"])
-        if sched > datetime.utcnow() + timedelta(hours=48):
+        if sched > datetime.now(timezone.utc) + timedelta(hours=48):
             print(f"[send-now] rejected email {email_id}: scheduled_at {row['scheduled_at']} is >48h in the future")
             raise HTTPException(400, "Email is scheduled too far in the future — wait until closer to its delivery date")
     if not row.get("html_body"):
@@ -345,7 +345,7 @@ def send_first_email(course_id: str, body: SendNowBody):
     # Guard: don't allow sending emails scheduled >48h in the future
     if row.get("scheduled_at"):
         sched = datetime.fromisoformat(row["scheduled_at"])
-        if sched > datetime.utcnow() + timedelta(hours=48):
+        if sched > datetime.now(timezone.utc) + timedelta(hours=48):
             print(f"[send-first] rejected email {row['id']}: scheduled_at {row['scheduled_at']} is >48h in the future")
             raise HTTPException(400, "Email is scheduled too far in the future — wait until closer to its delivery date")
     ok = do_send_email(body.email, row["subject"] or "Your first MindOS lesson", row["html_body"])
@@ -429,7 +429,7 @@ def run_cron(request: Request):
     try:
         send_due_emails()
         generate_upcoming()
-        return {"success": True, "time": datetime.utcnow().isoformat()}
+        return {"success": True, "time": datetime.now(timezone.utc).isoformat()}
     except Exception as e:
         raise HTTPException(500, str(e))
 
@@ -673,7 +673,7 @@ def admin_run_cron(request: Request):
         from scheduler_jobs import send_due_emails, generate_upcoming, sync_to_sheets
         send_due_emails()
         generate_upcoming()
-        return {"success": True, "time": datetime.utcnow().isoformat()}
+        return {"success": True, "time": datetime.now(timezone.utc).isoformat()}
     except Exception as e:
         raise HTTPException(500, str(e))
 
@@ -683,7 +683,7 @@ def admin_run_advance(request: Request):
     _check_admin(request)
     try:
         advance_processing()
-        return {"success": True, "time": datetime.utcnow().isoformat()}
+        return {"success": True, "time": datetime.now(timezone.utc).isoformat()}
     except Exception as e:
         raise HTTPException(500, str(e))
 
@@ -1017,7 +1017,7 @@ def admin_logs(request: Request, lines: int = 100):
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "time": datetime.utcnow().isoformat()}
+    return {"status": "ok", "time": datetime.now(timezone.utc).isoformat()}
 
 
 # 1x1 transparent GIF — email open tracking pixel
