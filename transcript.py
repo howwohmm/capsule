@@ -16,6 +16,16 @@ from typing import Optional
 
 import requests
 
+from config import (
+    GROQ_API_KEY,
+    PASTE_RS_URL,
+    DPASTE_URL,
+    YOUTUBE_COOKIES_FILE,
+    YOUTUBE_PROXY,
+    WEBSHARE_PROXY_USER,
+    WEBSHARE_PROXY_PASS,
+)
+
 
 # ---------------------------------------------------------------------------
 # Tier 0: Invidious public API (free proxy — bypasses YouTube IP blocks)
@@ -116,7 +126,6 @@ def _get_via_api(video_id: str) -> Optional[str]:
     try:
         from youtube_transcript_api import YouTubeTranscriptApi
         from youtube_transcript_api.proxies import GenericProxyConfig, WebshareProxyConfig
-        from config import YOUTUBE_PROXY, WEBSHARE_PROXY_USER, WEBSHARE_PROXY_PASS
     except ImportError:
         return None
 
@@ -217,7 +226,6 @@ def _run_ytdlp_subtitles(video_id: str, tmpdir: str, proxy: Optional[str]) -> Op
     }
     if proxy:
         opts["proxy"] = proxy
-    from config import YOUTUBE_COOKIES_FILE
     if YOUTUBE_COOKIES_FILE and os.path.exists(YOUTUBE_COOKIES_FILE):
         opts["cookiefile"] = YOUTUBE_COOKIES_FILE
     with yt_dlp.YoutubeDL(opts) as ydl:
@@ -244,8 +252,6 @@ def _get_via_ytdlp(video_id: str) -> Optional[str]:
         import yt_dlp
     except ImportError:
         return None
-
-    from config import YOUTUBE_PROXY
 
     # Try with proxy first, then without
     proxies_to_try = []
@@ -326,7 +332,6 @@ def _split_audio_ffmpeg(audio_path: str, chunk_mb: float = 22.0) -> list:
 def _get_via_groq(video_id: str) -> Optional[str]:
     """Download raw audio via yt-dlp (no ffmpeg needed for m4a/webm) then
     transcribe with Groq whisper-large-v3. Free tier: 28,800 seconds/day."""
-    from config import GROQ_API_KEY
     if not GROQ_API_KEY:
         print(f"   [groq] no GROQ_API_KEY set, skipping")
         return None
@@ -343,8 +348,6 @@ def _get_via_groq(video_id: str) -> Optional[str]:
     with tempfile.TemporaryDirectory() as tmpdir:
         audio_path = None
 
-        from config import YOUTUBE_PROXY
-
         # Download best audio — try proxy first, then no proxy
         proxies_to_try = ([YOUTUBE_PROXY] if YOUTUBE_PROXY else []) + [None]
         audio_files = []
@@ -360,7 +363,6 @@ def _get_via_groq(video_id: str) -> Optional[str]:
             }
             if proxy:
                 base_opts["proxy"] = proxy
-            from config import YOUTUBE_COOKIES_FILE
             if YOUTUBE_COOKIES_FILE and os.path.exists(YOUTUBE_COOKIES_FILE):
                 base_opts["cookiefile"] = YOUTUBE_COOKIES_FILE
             try:
@@ -523,7 +525,6 @@ def resolve_playlist(url: str) -> tuple[str, list[dict]]:
 
 def publish_transcript(text: str, title: str = "") -> Optional[str]:
     """Post raw transcript to paste.rs, fallback to dpaste.org."""
-    from config import PASTE_RS_URL, DPASTE_URL
     content = f"{title}\n\n{text}" if title else text
 
     try:
