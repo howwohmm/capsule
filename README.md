@@ -1,17 +1,17 @@
 # Capsule
 
-Turn any YouTube playlist into a daily email course with spaced repetition. Submit a playlist URL and your email — get one lesson a day until the course is done.
+Capsule turns any YouTube playlist into a daily email course with spaced repetition. Submit a playlist URL and your email. You get one lesson a day until the course is complete.
 
 **Live at:** [mindos.fly.dev](https://mindos.fly.dev)
 
 ## How it works
 
-1. Submit a YouTube playlist URL + email
-2. App fetches all video transcripts (3-tier pipeline)
-3. LLM (OpenRouter) breaks each transcript into lessons with key takeaways
-4. Lessons stored in SQLite with a spaced repetition schedule
+1. Submit a YouTube playlist URL and your email
+2. The app fetches all video transcripts (3-tier pipeline)
+3. The LLM (OpenRouter) splits each transcript into lessons with key takeaways
+4. The app stores lessons in SQLite with a spaced repetition schedule
 5. APScheduler emails one lesson per day via Resend until the course is complete
-6. Track progress live via SSE stream or poll the job status endpoint
+6. Track progress live via the SSE stream or poll the job status endpoint
 
 ## Tech stack
 
@@ -44,19 +44,19 @@ GET  /api/cron                      — manual cron trigger (CRON_SECRET require
 
 ## Admin
 
-`/admin` — password-protected dashboard for monitoring enrollments, viewing job status, and manually triggering emails.
+`/admin` is a password-protected dashboard. Use it to monitor enrollments, view job status, and trigger emails manually.
 
 ## Transcript pipeline
 
-1. `youtube-transcript-api` — fast, uses `YOUTUBE_PROXY` if set
-2. `yt-dlp` — auto-generated captions fallback
-3. `Groq Whisper` — audio transcription; ffmpeg auto-chunks files >24MB
+1. `youtube-transcript-api` is fast and uses `YOUTUBE_PROXY` if set
+2. `yt-dlp` is the fallback for auto-generated captions
+3. `Groq Whisper` transcribes audio. ffmpeg splits files >24MB into chunks automatically
 
 ## Processing architecture
 
 - **JIT**: enrollment processes 1 video immediately
 - `advance_processing` runs at 2am IST nightly to queue the next video per course
-- `send_emails` job runs every 5 minutes
+- The `send_emails` job runs every 5 minutes
 - `generate_reviews` runs hourly
 
 ## Setup
