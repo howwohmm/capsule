@@ -114,7 +114,7 @@ def advance_processing():
     video is processed 1 day before it's due. Keeps resource usage flat
     regardless of playlist size — only processes what's actually needed.
     """
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     with db.get_db() as conn:
         courses = conn.execute(
@@ -214,7 +214,7 @@ def sync_to_sheets():
             sh, "Stats",
             headers=["Metric", "Value", "Updated"],
             rows=[
-                ["Total Users",       len(users),             datetime.utcnow().isoformat()],
+                ["Total Users",       len(users),             datetime.now(timezone.utc).isoformat()],
                 ["Active Courses",    sum(1 for c in courses if c["status"] == "active"), ""],
                 ["Emails Total",      stats["total"],          ""],
                 ["Emails Sent",       stats["sent"],           ""],
